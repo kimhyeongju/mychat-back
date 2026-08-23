@@ -1,0 +1,18 @@
+# 로컬 개발용: MariaDB만 컨테이너로 띄우고, Spring Boot는 IDE에서 직접 실행(local 프로필)
+services:
+  mariadb:
+    image: mariadb:11
+    container_name: mychat-mariadb-local
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: '753951'
+      MARIADB_DATABASE: mychat_local
+      MARIADB_USER: root
+      MARIADB_PASSWORD: '753951'
+    ports:
+      - '3306:3306'
+    volumes:
+      - mariadb_local_data:/var/lib/mysql
+
+volumes:
+  mariadb_local_data:
