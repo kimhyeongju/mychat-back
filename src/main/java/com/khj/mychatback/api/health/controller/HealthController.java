@@ -16,7 +16,7 @@ public class HealthController {
   public Map<String, Object> hello() {
     return Map.of(
       "message",
-      "Hello, my web is running!",
+      "Hello, test is working!",
       "timestamp",
       LocalDateTime.now()
     );
