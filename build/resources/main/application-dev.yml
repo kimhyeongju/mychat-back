@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: jdbc:mariadb://${DB_HOST:mariadb}:${DB_PORT:3306}/${DB_NAME:mychat_dev}
+    username: ${DB_USERNAME:mychat}
+    password: ${DB_PASSWORD:753951}
+    driver-class-name: org.mariadb.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+
+jwt:
+  secret: ${JWT_SECRET:dev-only-secret-key-please-change-this-in-real-env-32bytes+}
+  access-token-expiration-ms: 1800000
+  refresh-token-expiration-ms: 1209600000
+
+sms:
+  aligo:
+    api-key: ${ALIGO_API_KEY:changeme}
+    user-id: ${ALIGO_USER_ID:changeme}
+    sender: ${ALIGO_SENDER:01000000000}
+    mock: true
