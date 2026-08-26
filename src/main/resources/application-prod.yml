@@ -8,11 +8,23 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
 
 jwt:
   secret: ${JWT_SECRET}
   access-token-expiration-ms: ${JWT_ACCESS_EXP_MS:1800000}
   refresh-token-expiration-ms: ${JWT_REFRESH_EXP_MS:1209600000}
+
+sms:
+  aligo:
+    api-key: ${ALIGO_API_KEY}
+    user-id: ${ALIGO_USER_ID}
+    sender: ${ALIGO_SENDER}
+    mock: false
 
 logging:
   level:

@@ -42,12 +42,27 @@ curl http://localhost:8080/api/hello
 ```
 
 ## 프로필
-| 프로필 | 용도 | DB |
-|---|---|---|
-| local | 로컬 개발 (IDE 실행) | localhost:3306 MariaDB |
-| test  | GitHub Actions 테스트 | H2 인메모리 |
-| dev   | 컨테이너 통합 확인 | docker network 내 MariaDB |
-| prod  | 미니PC 운영 배포 | 환경변수 기반 MariaDB |
+| 프로필 | 용도 | DB | Redis |
+|---|---|---|---|
+| local | 로컬 개발 (IDE 실행) | localhost:3306 MariaDB | localhost:6379 |
+| test  | GitHub Actions 테스트 | H2 인메모리 | GitHub Actions service container |
+| dev   | 컨테이너 통합 확인 | docker network 내 MariaDB | docker network 내 Redis |
+| prod  | 미니PC 운영 배포 | 환경변수 기반 MariaDB | 환경변수 기반 Redis |
+
+## 인증 (JWT) 관련 API
+
+| Method | URL | 설명 | 인증 필요 |
+|---|---|---|---|
+| POST | `/api/auth/phone/send-code` | 휴대폰 인증번호 발송 (알리고 SMS) | X |
+| POST | `/api/auth/phone/verify` | 인증번호 검증 | X |
+| POST | `/api/auth/signup` | 회원가입 (휴대폰 인증 완료 필요) | X |
+| POST | `/api/auth/login` | 로그인, Access/Refresh Token 발급 | X |
+| POST | `/api/auth/reissue` | Refresh Token으로 재발급 | X |
+| POST | `/api/auth/logout` | Refresh Token 폐기 | O |
+
+- Access Token은 응답 바디로 내려주며, 이후 요청은 `Authorization: Bearer {accessToken}` 헤더로 인증합니다.
+- Refresh Token은 Redis에 `refresh:{username}` 키로 저장되며, 재로그인 시 이전 토큰은 자동 무효화됩니다(단일 세션).
+- SMS는 `sms.aligo.mock=true`(local/test/dev 기본값)일 때 실제 발송 없이 콘솔 로그로만 인증번호를 출력합니다. 운영 배포 시 `ALIGO_API_KEY`, `ALIGO_USER_ID`, `ALIGO_SENDER` 환경변수와 `mock=false` 설정이 필요합니다.
 
 ## CI/CD
 `.github/workflows/backend-ci-cd.yml`

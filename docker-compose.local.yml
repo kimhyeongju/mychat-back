@@ -5,14 +5,21 @@ services:
     container_name: mychat-mariadb-local
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: '753951'
+      MARIADB_ROOT_PASSWORD: 753951
       MARIADB_DATABASE: mychat_local
-      MARIADB_USER: root
-      MARIADB_PASSWORD: '753951'
+      MARIADB_USER: mychat
+      MARIADB_PASSWORD: 753951
     ports:
       - '3306:3306'
     volumes:
       - mariadb_local_data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    container_name: mychat-redis-local
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
 
 volumes:
   mariadb_local_data:

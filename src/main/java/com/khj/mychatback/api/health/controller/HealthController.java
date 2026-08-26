@@ -2,6 +2,7 @@ package com.khj.mychatback.api.health.controller;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -12,13 +13,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class HealthController {
 
-  @GetMapping("/api/hello")
-  public Map<String, Object> hello() {
-    return Map.of(
-      "message",
-      "Hello, test is working!",
-      "timestamp",
-      LocalDateTime.now()
-    );
-  }
+    @GetMapping("/api/hello")
+    public Map<String, Object> hello() {
+        return Map.of(
+                "message", "Hello, mychat-back is running!",
+                "timestamp", LocalDateTime.now()
+        );
+    }
 }

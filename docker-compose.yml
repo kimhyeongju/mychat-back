@@ -9,11 +9,21 @@ services:
       MARIADB_ROOT_PASSWORD: 753951
       MARIADB_DATABASE: mychat_dev
       MARIADB_USER: mychat
-      MARIADB_PASSWORD: '753951'
+      MARIADB_PASSWORD: 753951
     volumes:
-      - mariadb_data:/var/lib/mysqls
+      - mariadb_data:/var/lib/mysql
     healthcheck:
       test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: mychat-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -25,13 +35,17 @@ services:
     depends_on:
       mariadb:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: dev
       DB_HOST: mariadb
       DB_PORT: 3306
       DB_NAME: mychat_dev
       DB_USERNAME: mychat
-      DB_PASSWORD: '753951'
+      DB_PASSWORD: 753951
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     ports:
       - '8080:8080'
 

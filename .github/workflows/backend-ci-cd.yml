@@ -2,14 +2,24 @@ name: Backend CI/CD
 
 on:
   push:
-    branches: ['main', 'dev']
+    branches: [ "main", "dev" ]
   pull_request:
-    branches: ['main', 'dev']
+    branches: [ "main", "dev" ]
 
 jobs:
   test:
     name: Build & Test
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -55,6 +65,8 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/mychat-back:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/mychat-back:${{ steps.vars.outputs.sha_short }}
 
+  # 미니PC에 self-hosted runner를 등록한 이후부터 활성화.
+  # runner label을 "minipc" 등으로 지정해서 아래 runs-on과 맞추면 됨.
   deploy:
     name: Deploy to Home Server
     needs: docker-build-push

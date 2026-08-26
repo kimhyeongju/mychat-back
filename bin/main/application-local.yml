@@ -11,3 +11,20 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+jwt:
+  secret: local-dev-only-secret-key-please-change-this-in-real-env-32bytes+
+  access-token-expiration-ms: 1800000
+  refresh-token-expiration-ms: 1209600000
+
+sms:
+  aligo:
+    api-key: ${ALIGO_API_KEY:changeme}
+    user-id: ${ALIGO_USER_ID:changeme}
+    sender: ${ALIGO_SENDER:01000000000}
+    # 로컬 개발 시 실제 SMS 발송 없이 콘솔에만 인증번호를 출력
+    mock: true
