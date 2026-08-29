@@ -21,7 +21,7 @@ public class ChatStompController {
 
   @MessageMapping("/rooms/{roomId}/send")
   public void sendMessage(
-    @DestinationVariable Long roomId,
+    @DestinationVariable("roomId") Long roomId,
     @Valid @Payload ChatMessageSendRequest request
   ) {
     chatMessageService.sendMessage(roomId, request);

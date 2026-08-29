@@ -2,6 +2,7 @@ package com.khj.mychatback.api.chat.controller;
 
 import com.khj.mychatback.api.chat.dto.ChatMessageResponse;
 import com.khj.mychatback.api.chat.dto.CreateLocationRoomRequest;
+import com.khj.mychatback.api.chat.dto.DirectRoomSummaryResponse;
 import com.khj.mychatback.api.chat.dto.JoinRoomResponse;
 import com.khj.mychatback.api.chat.dto.RoomSummaryResponse;
 import com.khj.mychatback.api.chat.service.ChatMessageService;
@@ -37,8 +38,8 @@ public class ChatRoomController {
 
   @GetMapping("/nearby")
   public List<RoomSummaryResponse> findNearbyRooms(
-    @RequestParam Double latitude,
-    @RequestParam Double longitude
+    @RequestParam("latitude") Double latitude,
+    @RequestParam("longitude") Double longitude
   ) {
     return chatRoomService.findNearbyActiveRooms(latitude, longitude);
   }
@@ -56,7 +57,7 @@ public class ChatRoomController {
 
   @PostMapping("/{roomId}/join")
   public JoinRoomResponse joinRoom(
-    @PathVariable Long roomId,
+    @PathVariable("roomId") Long roomId,
     Authentication authentication
   ) {
     return chatRoomService.joinRoom(roomId, usernameOf(authentication));
@@ -64,7 +65,7 @@ public class ChatRoomController {
 
   @PostMapping("/direct/{targetUserId}")
   public JoinRoomResponse getOrCreateDirectRoom(
-    @PathVariable Long targetUserId,
+    @PathVariable("targetUserId") Long targetUserId,
     Authentication authentication
   ) {
     return chatRoomService.getOrCreateDirectRoomAndJoin(
@@ -73,11 +74,18 @@ public class ChatRoomController {
     );
   }
 
+  @GetMapping("/direct")
+  public List<DirectRoomSummaryResponse> listMyDirectRooms(
+    Authentication authentication
+  ) {
+    return chatRoomService.listMyDirectRooms(authentication.getName());
+  }
+
   @GetMapping("/{roomId}/messages")
   public Slice<ChatMessageResponse> getMessages(
-    @PathVariable Long roomId,
-    @RequestParam(defaultValue = "0") int page,
-    @RequestParam(defaultValue = "30") int size
+    @PathVariable("roomId") Long roomId,
+    @RequestParam(name = "page", defaultValue = "0") int page,
+    @RequestParam(name = "size", defaultValue = "30") int size
   ) {
     Pageable pageable = PageRequest.of(page, size);
     return chatMessageService.getMessages(roomId, pageable);

@@ -1,11 +1,13 @@
 package com.khj.mychatback.api.chat.service;
 
 import com.khj.mychatback.api.chat.dto.CreateLocationRoomRequest;
+import com.khj.mychatback.api.chat.dto.DirectRoomSummaryResponse;
 import com.khj.mychatback.api.chat.dto.JoinRoomResponse;
 import com.khj.mychatback.api.chat.dto.RoomSummaryResponse;
 import com.khj.mychatback.entity.jpa.ChatRoom;
 import com.khj.mychatback.entity.jpa.ChatRoomMember;
 import com.khj.mychatback.entity.jpa.User;
+import com.khj.mychatback.enums.RoomType;
 import com.khj.mychatback.repo.jpa.ChatRoomMemberRepository;
 import com.khj.mychatback.repo.jpa.ChatRoomRepository;
 import com.khj.mychatback.repo.jpa.UserRepository;
@@ -129,6 +131,40 @@ public class ChatRoomService {
       );
 
     return JoinRoomResponse.from(myMembership);
+  }
+
+  /** 로그인한 회원의 DM 방 목록을, 최근 활동순으로 상대방 닉네임과 함께 반환한다. */
+  public List<DirectRoomSummaryResponse> listMyDirectRooms(String username) {
+    User me = userRepository
+      .findByUsername(username)
+      .orElseThrow(() ->
+        new ResponseStatusException(
+          HttpStatus.UNAUTHORIZED,
+          "존재하지 않는 사용자입니다."
+        )
+      );
+
+    List<ChatRoomMember> myMemberships = chatRoomMemberRepository.findByUserAndChatRoom_TypeOrderByChatRoom_LastActivityAtDesc(
+      me,
+      RoomType.DIRECT
+    );
+
+    return myMemberships
+      .stream()
+      .map(myMembership -> {
+        ChatRoom room = myMembership.getChatRoom();
+        ChatRoomMember partner = chatRoomMemberRepository
+          .findByChatRoomAndUserNot(room, me)
+          .orElse(null);
+
+        return new DirectRoomSummaryResponse(
+          room.getId(),
+          partner != null ? partner.getUser().getId() : null,
+          partner != null ? partner.getNickname() : "(알 수 없음)",
+          room.getLastActivityAt()
+        );
+      })
+      .toList();
   }
 
   private ChatRoomMember joinInternal(ChatRoom room, String username) {
