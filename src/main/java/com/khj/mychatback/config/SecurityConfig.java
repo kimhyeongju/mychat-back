@@ -1,8 +1,7 @@
 package com.khj.mychatback.config;
 
-import com.khj.mychatback.config.jwt.JwtAuthenticationFilter;
-import com.khj.mychatback.config.jwt.JwtTokenProvider;
 import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -15,6 +14,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import com.khj.mychatback.config.jwt.JwtAuthenticationFilter;
+import com.khj.mychatback.config.jwt.JwtTokenProvider;
 
 /**
  * 인증 없이 접근 가능한 경로: 회원가입/로그인/휴대폰 인증, 헬스체크, Swagger, WebSocket 핸드셰이크.
@@ -87,7 +89,9 @@ public class SecurityConfig {
       List.of(
         "http://localhost:5173",
         "http://192.168.*.*:5173",
-        "http://10.*.*.*:5173"
+        "http://10.*.*.*:5173",
+        "https://*.ngrok-free.app",
+        "https://*.ngrok.io"
       )
     );
     configuration.setAllowedMethods(

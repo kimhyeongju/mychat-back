@@ -21,7 +21,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
       .setAllowedOriginPatterns(
         "http://localhost:5173",
         "http://192.168.*.*:5173",
-        "http://10.*.*.*:5173"
+        "http://10.*.*.*:5173",
+        "https://*.ngrok-free.app",
+        "https://*.ngrok.io"
       )
       .withSockJS();
   }
