@@ -6,15 +6,16 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.UuidGenerator;
 
 /**
  * 채팅방 엔티티.
@@ -34,8 +35,9 @@ import lombok.NoArgsConstructor;
 public class ChatRoom extends BaseTimeEntity {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  @GeneratedValue
+  @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
+  private UUID id;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
@@ -53,10 +55,10 @@ public class ChatRoom extends BaseTimeEntity {
   private Integer radiusMeters;
 
   /**
-   * DIRECT 타입 전용: 두 회원 ID를 정렬해 조합한 문자열 (예: "3_17").
+   * DIRECT 타입 전용: 두 회원 ID(UUID)를 정렬해 조합한 문자열 (예: "3fa8..._9c1e...").
    * 같은 두 회원 사이의 방을 유일하게 식별하기 위한 키.
    */
-  @Column(name = "dm_key", length = 50)
+  @Column(name = "dm_key", length = 80)
   private String dmKey;
 
   /** 마지막 메시지 시각. "활성화된 방" 판단 및 반경 검색 결과 정렬에 사용 */

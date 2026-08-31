@@ -9,6 +9,7 @@ import com.khj.mychatback.api.chat.service.ChatMessageService;
 import com.khj.mychatback.api.chat.service.ChatRoomService;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -57,7 +58,7 @@ public class ChatRoomController {
 
   @PostMapping("/{roomId}/join")
   public JoinRoomResponse joinRoom(
-    @PathVariable("roomId") Long roomId,
+    @PathVariable("roomId") UUID roomId,
     Authentication authentication
   ) {
     return chatRoomService.joinRoom(roomId, usernameOf(authentication));
@@ -65,7 +66,7 @@ public class ChatRoomController {
 
   @PostMapping("/direct/{targetUserId}")
   public JoinRoomResponse getOrCreateDirectRoom(
-    @PathVariable("targetUserId") Long targetUserId,
+    @PathVariable("targetUserId") UUID targetUserId,
     Authentication authentication
   ) {
     return chatRoomService.getOrCreateDirectRoomAndJoin(
@@ -83,7 +84,7 @@ public class ChatRoomController {
 
   @GetMapping("/{roomId}/messages")
   public Slice<ChatMessageResponse> getMessages(
-    @PathVariable("roomId") Long roomId,
+    @PathVariable("roomId") UUID roomId,
     @RequestParam(name = "page", defaultValue = "0") int page,
     @RequestParam(name = "size", defaultValue = "30") int size
   ) {

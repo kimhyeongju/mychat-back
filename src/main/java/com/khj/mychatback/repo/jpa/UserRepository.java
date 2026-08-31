@@ -3,9 +3,10 @@ package com.khj.mychatback.repo.jpa;
 import com.khj.mychatback.entity.jpa.User;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, UUID> {
   Optional<User> findByUsername(String username);
 
   Optional<User> findByPhoneNumber(String phoneNumber);
@@ -18,6 +19,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
   List<User> findTop10ByNicknameContainingIgnoreCaseAndIdNot(
     String keyword,
-    Long excludeId
+    UUID excludeId
   );
 }

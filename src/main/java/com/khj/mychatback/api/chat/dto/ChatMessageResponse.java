@@ -2,11 +2,12 @@ package com.khj.mychatback.api.chat.dto;
 
 import com.khj.mychatback.entity.jpa.ChatMessage;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public record ChatMessageResponse(
-  Long messageId,
-  Long roomId,
-  Long senderMemberId,
+  UUID messageId,
+  UUID roomId,
+  UUID senderMemberId,
   String senderNickname,
   boolean senderAnonymous,
   String content,

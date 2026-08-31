@@ -6,10 +6,11 @@ import com.khj.mychatback.entity.jpa.User;
 import com.khj.mychatback.enums.RoomType;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ChatRoomMemberRepository
-  extends JpaRepository<ChatRoomMember, Long> {
+  extends JpaRepository<ChatRoomMember, UUID> {
   List<ChatRoomMember> findByChatRoomAndLeftAtIsNull(ChatRoom chatRoom);
 
   Optional<ChatRoomMember> findByChatRoomAndUser(ChatRoom chatRoom, User user);

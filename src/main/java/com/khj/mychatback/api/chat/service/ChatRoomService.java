@@ -65,7 +65,7 @@ public class ChatRoomService {
 
   /** 이미 존재하는 방(반경 검색 결과 등)에 입장한다. */
   @Transactional
-  public JoinRoomResponse joinRoom(Long roomId, String username) {
+  public JoinRoomResponse joinRoom(UUID roomId, String username) {
     ChatRoom room = chatRoomRepository
       .findById(roomId)
       .orElseThrow(() ->
@@ -86,7 +86,7 @@ public class ChatRoomService {
   @Transactional
   public JoinRoomResponse getOrCreateDirectRoomAndJoin(
     String username,
-    Long targetUserId
+    UUID targetUserId
   ) {
     User me = userRepository
       .findByUsername(username)
@@ -204,9 +204,10 @@ public class ChatRoomService {
     return nickname;
   }
 
-  private String buildDmKey(Long userIdA, Long userIdB) {
-    long min = Math.min(userIdA, userIdB);
-    long max = Math.max(userIdA, userIdB);
-    return min + "_" + max;
+  /** UUID는 사전식(lexicographic) 비교로 정렬해 항상 같은 순서의 키를 만든다. */
+  private String buildDmKey(UUID userIdA, UUID userIdB) {
+    return userIdA.compareTo(userIdB) <= 0
+      ? userIdA + "_" + userIdB
+      : userIdB + "_" + userIdA;
   }
 }

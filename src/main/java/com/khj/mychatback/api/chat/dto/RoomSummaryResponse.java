@@ -3,9 +3,10 @@ package com.khj.mychatback.api.chat.dto;
 import com.khj.mychatback.entity.jpa.ChatRoom;
 import com.khj.mychatback.enums.RoomType;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public record RoomSummaryResponse(
-  Long roomId,
+  UUID roomId,
   RoomType type,
   String title,
   Integer radiusMeters,

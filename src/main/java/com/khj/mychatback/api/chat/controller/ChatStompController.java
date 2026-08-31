@@ -3,6 +3,7 @@ package com.khj.mychatback.api.chat.controller;
 import com.khj.mychatback.api.chat.dto.ChatMessageSendRequest;
 import com.khj.mychatback.api.chat.service.ChatMessageService;
 import jakarta.validation.Valid;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -21,7 +22,7 @@ public class ChatStompController {
 
   @MessageMapping("/rooms/{roomId}/send")
   public void sendMessage(
-    @DestinationVariable("roomId") Long roomId,
+    @DestinationVariable("roomId") UUID roomId,
     @Valid @Payload ChatMessageSendRequest request
   ) {
     chatMessageService.sendMessage(roomId, request);

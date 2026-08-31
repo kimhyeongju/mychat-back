@@ -8,6 +8,7 @@ import com.khj.mychatback.entity.jpa.ChatRoomMember;
 import com.khj.mychatback.repo.jpa.ChatMessageRepository;
 import com.khj.mychatback.repo.jpa.ChatRoomMemberRepository;
 import com.khj.mychatback.repo.jpa.ChatRoomRepository;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -28,7 +29,7 @@ public class ChatMessageService {
 
   /** STOMP로 들어온 메시지를 저장하고, 같은 방을 구독 중인 모두에게 브로드캐스트한다. */
   @Transactional
-  public void sendMessage(Long roomId, ChatMessageSendRequest request) {
+  public void sendMessage(UUID roomId, ChatMessageSendRequest request) {
     ChatRoom room = chatRoomRepository
       .findById(roomId)
       .orElseThrow(() ->
@@ -71,7 +72,7 @@ public class ChatMessageService {
   }
 
   public Slice<ChatMessageResponse> getMessages(
-    Long roomId,
+    UUID roomId,
     Pageable pageable
   ) {
     ChatRoom room = chatRoomRepository
