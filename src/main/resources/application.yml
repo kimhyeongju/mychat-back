@@ -3,6 +3,13 @@ spring:
     name: mychat-back
   profiles:
     active: local
+  web:
+    error:
+      # 기본값(never)이면 ResponseStatusException의 메시지(예: "이미 사용 중인 아이디입니다")가
+      # 콘솔 로그에만 남고 응답 JSON에는 빠져서, 프론트가 항상 "요청에 실패했습니다" 같은
+      # 일반 메시지만 받게 된다. always로 바꿔서 실제 예외 메시지가 body의 "message" 필드로 내려가게 한다.
+      include-message: always
+      include-binding-errors: always
 
 server:
   port: 8080

@@ -1,5 +1,6 @@
 package com.khj.mychatback.api.auth.controller;
 
+import com.khj.mychatback.api.auth.dto.AvailabilityResponse;
 import com.khj.mychatback.api.auth.dto.FindIdRequest;
 import com.khj.mychatback.api.auth.dto.FindIdResponse;
 import com.khj.mychatback.api.auth.dto.LoginRequest;
@@ -17,9 +18,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -56,6 +59,20 @@ public class AuthController {
   @PostMapping("/signup")
   public SignUpResponse signUp(@Valid @RequestBody SignUpRequest request) {
     return authService.signUp(request);
+  }
+
+  @GetMapping("/check-username")
+  public AvailabilityResponse checkUsername(
+    @RequestParam("username") String username
+  ) {
+    return authService.checkUsernameAvailable(username);
+  }
+
+  @GetMapping("/check-nickname")
+  public AvailabilityResponse checkNickname(
+    @RequestParam("nickname") String nickname
+  ) {
+    return authService.checkNicknameAvailable(nickname);
   }
 
   @PostMapping("/login")

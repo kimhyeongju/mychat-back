@@ -1,7 +1,8 @@
 package com.khj.mychatback.config;
 
+import com.khj.mychatback.config.jwt.JwtAuthenticationFilter;
+import com.khj.mychatback.config.jwt.JwtTokenProvider;
 import java.util.List;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -15,9 +16,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.khj.mychatback.config.jwt.JwtAuthenticationFilter;
-import com.khj.mychatback.config.jwt.JwtTokenProvider;
-
 /**
  * 인증 없이 접근 가능한 경로: 회원가입/로그인/휴대폰 인증, 헬스체크, Swagger, WebSocket 핸드셰이크.
  * 그 외 API는 JwtAuthenticationFilter가 채워주는 인증 정보가 있어야 접근 가능.
@@ -29,6 +27,8 @@ public class SecurityConfig {
   private static final String[] PUBLIC_ENDPOINTS = {
     "/api/auth/phone/**",
     "/api/auth/signup",
+    "/api/auth/check-username",
+    "/api/auth/check-nickname",
     "/api/auth/login",
     "/api/auth/reissue",
     "/api/auth/find-id",

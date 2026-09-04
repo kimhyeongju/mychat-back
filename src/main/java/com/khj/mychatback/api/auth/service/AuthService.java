@@ -1,5 +1,6 @@
 package com.khj.mychatback.api.auth.service;
 
+import com.khj.mychatback.api.auth.dto.AvailabilityResponse;
 import com.khj.mychatback.api.auth.dto.FindIdRequest;
 import com.khj.mychatback.api.auth.dto.FindIdResponse;
 import com.khj.mychatback.api.auth.dto.LoginRequest;
@@ -124,6 +125,14 @@ public class AuthService {
     refreshTokenService.delete(username);
   }
 
+  public AvailabilityResponse checkUsernameAvailable(String username) {
+    return new AvailabilityResponse(!userRepository.existsByUsername(username));
+  }
+
+  public AvailabilityResponse checkNicknameAvailable(String nickname) {
+    return new AvailabilityResponse(!userRepository.existsByNickname(nickname));
+  }
+
   public FindIdResponse findId(FindIdRequest request) {
     if (!phoneVerificationService.isVerified(request.phoneNumber())) {
       throw new ResponseStatusException(
@@ -196,17 +205,19 @@ public class AuthService {
       );
     }
 
-    // TODO: 채팅방 참여 이력(ChatRoomMember)이 있는 회원은 FK 제약으로 삭제가 실패할 수 있음.
-    //       추후 회원 탈퇴 시 관련 데이터 처리(익명화 또는 cascade 삭제) 정책 정의 필요.
+    // TODO: 탈퇴 시 ChatRoomMember/ChatMessage는 삭제하지 않고 "익명화" 처리할 예정.
+    //       예: user 참조를 끊고 nickname을 "(탈퇴한 사용자)"로 고정, anonymousId 형태로 전환.
+    //       이렇게 하면 다른 사용자가 보던 채팅 기록(메시지 자체)은 유지되면서 개인정보만 제거됨.
+    //       User 삭제 전에 해당 회원의 모든 ChatRoomMember를 찾아 위 처리를 먼저 수행해야 함 (미구현).
     userRepository.delete(user);
     refreshTokenService.delete(username);
   }
 
   private String maskUsername(String username) {
-    if (username.length() <= 3) {
+    if (username.length() <= 2) {
       return username.charAt(0) + "*".repeat(username.length() - 1);
     }
-    int visibleLength = Math.min(4, username.length() - 4);
+    int visibleLength = Math.min(2, username.length() - 2);
     return (
       username.substring(0, visibleLength) +
       "*".repeat(username.length() - visibleLength)
