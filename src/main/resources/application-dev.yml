@@ -23,4 +23,4 @@ sms:
     api-key: ${ALIGO_API_KEY:changeme}
     user-id: ${ALIGO_USER_ID:changeme}
     sender: ${ALIGO_SENDER:01000000000}
-    mock: true
+    mock: ${SMS_MOCK:true}

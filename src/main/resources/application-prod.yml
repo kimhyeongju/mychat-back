@@ -24,7 +24,7 @@ sms:
     api-key: ${ALIGO_API_KEY}
     user-id: ${ALIGO_USER_ID}
     sender: ${ALIGO_SENDER}
-    mock: false
+    mock: ${SMS_MOCK:true}
 
 logging:
   level:

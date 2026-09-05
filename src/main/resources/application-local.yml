@@ -27,4 +27,4 @@ sms:
     user-id: ${ALIGO_USER_ID:changeme}
     sender: ${ALIGO_SENDER:01000000000}
     # 로컬 개발 시 실제 SMS 발송 없이 콘솔에만 인증번호를 출력
-    mock: true
+    mock: ${SMS_MOCK:true}
