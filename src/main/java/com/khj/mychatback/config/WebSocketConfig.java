@@ -22,8 +22,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         "http://localhost:5173",
         "http://192.168.*.*:5173",
         "http://10.*.*.*:5173",
-        "https://*.ngrok-free.app",
-        "https://*.ngrok.io"
+        "https://khj-playground.site"
       )
       .withSockJS();
   }
