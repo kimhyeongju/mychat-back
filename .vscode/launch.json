@@ -6,6 +6,14 @@
   "configurations": [
     {
       "type": "java",
+      "name": "PlaygroundApplication",
+      "request": "launch",
+      "mainClass": "com.khj.playground.PlaygroundApplication",
+      "projectName": "app",
+      "args": "--spring.profiles.active=local"
+    },
+    {
+      "type": "java",
       "name": "Current File",
       "request": "launch",
       "mainClass": "${file}"

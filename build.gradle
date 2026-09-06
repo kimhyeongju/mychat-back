@@ -1,56 +1,65 @@
+// mychat-back/build.gradle  (루트)
+//
+// 루트 프로젝트 자체는 코드를 갖지 않는다. 여기서 하는 일은 두 가지뿐이다.
+//   1. 플러그인 버전을 한 곳에서 선언
+//   2. 모든 하위 모듈에 공통으로 적용할 설정을 subprojects 블록으로 내려보내기
+//
+// 최상위에 dependencies 블록을 두면 안 된다. 루트에는 java 플러그인이 적용돼 있지 않다.
+
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '4.1.1'
-	id 'io.spring.dependency-management' version '1.1.7'
+    // apply false = "버전만 등록하고 루트에는 적용하지 않는다"
+    // boot 플러그인은 실행 가능한 jar를 만드는 app 모듈에서만 적용한다.
+    id 'org.springframework.boot' version '4.1.1' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
 }
 
-group = 'com.khj'
-version = '0.0.1-SNAPSHOT'
+allprojects {
+    group = 'com.khj'
+    version = '0.0.1-SNAPSHOT'
 
-java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
+    repositories {
+        mavenCentral()
+    }
 }
 
-repositories {
-	mavenCentral()
-}
+subprojects {
+    // java-library를 쓰면 api / implementation 구분이 가능해진다.
+    // 이게 모듈 간 의존성 노출 범위를 통제하는 수단이다.
+    apply plugin: 'java-library'
+    apply plugin: 'io.spring.dependency-management'
 
-dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-	implementation 'org.springframework.boot:spring-boot-starter-websocket'
-	compileOnly 'org.projectlombok:lombok'
-	developmentOnly 'org.springframework.boot:spring-boot-devtools'
-	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
-	annotationProcessor 'org.projectlombok:lombok'
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
 
-	// SMS 발송 (알리고) - 별도 SDK 없이 RestClient로 HTTP 호출하므로 추가 의존성 불필요
+    // boot 플러그인을 적용하지 않는 라이브러리 모듈도 BOM은 필요하다.
+    // 이게 있어야 각 모듈에서 'spring-boot-starter-xxx' 버전을 생략할 수 있다.
+    dependencyManagement {
+        imports {
+            mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+        }
+    }
 
-	// JWT (jjwt는 내부적으로 Jackson 2를 사용 - Boot 4의 Jackson 3와 별개로 공존 가능)
-	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
-	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
-	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+    // 모든 모듈이 예외 없이 쓰는 것들만 여기 둔다.
+    dependencies {
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+        testCompileOnly 'org.projectlombok:lombok'
+        testAnnotationProcessor 'org.projectlombok:lombok'
 
-	// Swagger / OpenAPI (Spring Boot 4 지원은 3.x부터)
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
-	testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-websocket-test'
-	testCompileOnly 'org.projectlombok:lombok'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-	testRuntimeOnly 'com.h2database:h2'
-	testAnnotationProcessor 'org.projectlombok:lombok'
-}
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+        testRuntimeOnly 'com.h2database:h2'
+    }
 
-tasks.named('test') {
-	useJUnitPlatform()
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        // 컨트롤러의 @PathVariable("roomId") 같은 명시적 이름 지정을 생략할 수 있게 해준다.
+        options.compilerArgs << '-parameters'
+    }
 }

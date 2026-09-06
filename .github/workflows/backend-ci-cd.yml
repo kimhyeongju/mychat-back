@@ -2,9 +2,9 @@ name: Backend CI/CD
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: ['main', 'dev']
   pull_request:
-    branches: [ "main", "dev" ]
+    branches: ['main', 'dev']
 
 jobs:
   test:
@@ -36,7 +36,7 @@ jobs:
         run: ./gradlew test --no-daemon
 
       - name: Build jar
-        run: ./gradlew bootJar --no-daemon
+        run: ./gradlew :app:bootJar --no-daemon # bootJar -> :app:bootJar
 
   docker-build-push:
     name: Build & Push Docker Image

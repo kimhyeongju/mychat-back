@@ -1,0 +1,63 @@
+// app/build.gradle
+//
+// 유일한 실행 모듈. bootJar를 만드는 것도, application.yml을 갖는 것도 여기뿐이다.
+//
+// [중요] 이 파일은 전환 과정에서 계속 줄어든다.
+//   Step 1  : 소스가 전부 app에 있으므로 기존 build.gradle의 의존성을 그대로 갖고 있어야 한다.
+//   Step 2~4: 코드가 common/auth/chat으로 빠져나갈 때마다 해당 의존성도 같이 지운다.
+//   최종     : project(':...') 참조 + 부트스트랩 의존성만 남는다.
+//
+// 아래 [S2] [S3] [S4] 표시는 "그 Step이 끝나면 이 줄을 지운다"는 뜻이다.
+
+plugins {
+    // 루트에서 버전을 선언해뒀으므로 여기서는 id만 적는다.
+    id 'org.springframework.boot'
+}
+
+dependencies {
+    // ---- 모듈 참조 (Step 1부터 미리 넣어둔다. 모듈이 비어 있어도 무해하다) ----
+    implementation project(':auth')
+    // implementation project(':chat')
+    // implementation project(':board')
+    // implementation project(':invest')
+    // common은 auth가 api로 노출하므로 직접 선언할 필요가 없다.
+
+    // ---- app이 끝까지 갖고 있을 것들 ----
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
+    runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // Step 5에서 추가 (지금은 주석)
+    // implementation 'org.flywaydb:flyway-core'
+    // runtimeOnly 'org.flywaydb:flyway-mysql'
+
+    // ---- 코드가 빠져나가면 함께 지울 것들 ----
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'      // [S2] common으로
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'    // [S2] common으로
+    implementation 'org.springframework.boot:spring-boot-starter-validation'  // [S2] common으로
+
+    implementation 'org.springframework.boot:spring-boot-starter-security'    // [S3] auth로
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'                          // [S3] auth로
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'                            // [S3] auth로
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'                         // [S3] auth로
+
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'  // [S3]+[S4] auth/chat 양쪽에서 사용
+
+    // ---- 테스트 ----
+    // 전 모듈에 걸친 통합 테스트만 app에 둔다. 모듈별 슬라이스 테스트는 각 모듈에.
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-test'   // [S3] 이후 auth로
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'   // [S2] 이후 각 모듈로
+    testImplementation 'org.springframework.boot:spring-boot-starter-validation-test' // [S2] 이후 common으로
+    testImplementation 'org.springframework.boot:spring-boot-starter-websocket-test'  // [S4] 이후 chat으로
+}
+
+tasks.named('bootJar') {
+    // Dockerfile의 COPY 경로를 고정하기 위해 파일명을 박아둔다.
+    archiveFileName = 'app.jar'
+}
+
+// bootRun을 루트에서 ./gradlew bootRun 으로 부르면 app 모듈을 찾지 못한다.
+// ./gradlew :app:bootRun 으로 호출할 것.
