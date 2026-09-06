@@ -1,102 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" output="build/resources/test" path="src/test/resources">
+	<classpathentry kind="src" output="bin/main" path="src/main/java">
 		<attributes>
-			<attribute name="test" value="true"/>
-			<attribute name="optional" value="true"/>
-			<attribute name="gradle.buildServer" value="true"/>
-			<attribute name="resource" value="true"/>
+			<attribute name="gradle_scope" value="main"/>
+			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="src" output="build/classes/java/test" path="src/test/java">
-		<attributes>
-			<attribute name="test" value="true"/>
-			<attribute name="optional" value="true"/>
-			<attribute name="gradle.buildServer" value="true"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="src" output="build/resources/main" path="src/main/resources">
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-21/"/>
+	<classpathentry kind="con" path="org.eclipse.buildship.core.gradleclasspathcontainer"/>
+	<classpathentry kind="src" path="bin/generated-sources/annotations">
 		<attributes>
 			<attribute name="optional" value="true"/>
-			<attribute name="gradle.buildServer" value="true"/>
-			<attribute name="resource" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="src" output="build/classes/java/main" path="src/main/java">
-		<attributes>
-			<attribute name="gradle.buildServer" value="true"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="src" output="build/classes/java/test" path="build/generated/sources/annotationProcessor/java/test">
-		<attributes>
-			<attribute name="test" value="true"/>
-			<attribute name="optional" value="true"/>
-			<attribute name="gradle.buildServer" value="true"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="src" output="build/classes/java/main" path="build/generated/sources/annotationProcessor/java/main">
-		<attributes>
-			<attribute name="optional" value="true"/>
-			<attribute name="gradle.buildServer" value="true"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-21">
-		<attributes>
-			<attribute name="gradle.buildServer" value="true"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/hengz/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.46/a5cfe99fdf320e84955ef653f2ce1bf789d11385/lombok-1.18.46.jar" sourcepath="C:/Users/hengz/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.46/e114bc06aa39e4932147e3359b601f4f5d5a196f/lombok-1.18.46-sources.jar">
-		<attributes>
-			<attribute name="gradle.buildServer" value="true"/>
-			<attribute name="groupId" value="org.projectlombok"/>
-			<attribute name="artifactId" value="lombok"/>
-			<attribute name="version" value="1.18.46"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/hengz/.gradle/caches/modules-2/files-2.1/org.junit.platform/junit-platform-commons/6.0.3/1093a7faa2ba47c28aa83f378d9a2083463bb20c/junit-platform-commons-6.0.3.jar" sourcepath="C:/Users/hengz/.gradle/caches/modules-2/files-2.1/org.junit.platform/junit-platform-commons/6.0.3/27e4015c025cc02ea68d71b799a84a1508d4f60e/junit-platform-commons-6.0.3-sources.jar">
-		<attributes>
-			<attribute name="test" value="true"/>
-			<attribute name="gradle.buildServer" value="true"/>
-			<attribute name="groupId" value="org.junit.platform"/>
-			<attribute name="artifactId" value="junit-platform-commons"/>
-			<attribute name="version" value="6.0.3"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/hengz/.gradle/caches/modules-2/files-2.1/org.junit.platform/junit-platform-launcher/6.0.3/4a721cdd640ebdaa4c6850f5eee0b0377cf698b0/junit-platform-launcher-6.0.3.jar" sourcepath="C:/Users/hengz/.gradle/caches/modules-2/files-2.1/org.junit.platform/junit-platform-launcher/6.0.3/1fe45dac052ad1139918482204196a29e13b212d/junit-platform-launcher-6.0.3-sources.jar">
-		<attributes>
-			<attribute name="test" value="true"/>
-			<attribute name="gradle.buildServer" value="true"/>
-			<attribute name="groupId" value="org.junit.platform"/>
-			<attribute name="artifactId" value="junit-platform-launcher"/>
-			<attribute name="version" value="6.0.3"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/hengz/.gradle/caches/modules-2/files-2.1/org.opentest4j/opentest4j/1.3.0/152ea56b3a72f655d4fd677fc0ef2596c3dd5e6e/opentest4j-1.3.0.jar" sourcepath="C:/Users/hengz/.gradle/caches/modules-2/files-2.1/org.opentest4j/opentest4j/1.3.0/afb8ff23cffb021c56f333953aebfe6e8818568e/opentest4j-1.3.0-sources.jar">
-		<attributes>
-			<attribute name="test" value="true"/>
-			<attribute name="gradle.buildServer" value="true"/>
-			<attribute name="groupId" value="org.opentest4j"/>
-			<attribute name="artifactId" value="opentest4j"/>
-			<attribute name="version" value="1.3.0"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/hengz/.gradle/caches/modules-2/files-2.1/org.junit.platform/junit-platform-engine/6.0.3/101305612e7daa4ce978d3ba73fd02dd4a5f22d9/junit-platform-engine-6.0.3.jar" sourcepath="C:/Users/hengz/.gradle/caches/modules-2/files-2.1/org.junit.platform/junit-platform-engine/6.0.3/15cd543d3a2c2a9165ef6108b1bd7d31ec6e9356/junit-platform-engine-6.0.3-sources.jar">
-		<attributes>
-			<attribute name="test" value="true"/>
-			<attribute name="gradle.buildServer" value="true"/>
-			<attribute name="groupId" value="org.junit.platform"/>
-			<attribute name="artifactId" value="junit-platform-engine"/>
-			<attribute name="version" value="6.0.3"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/hengz/.gradle/caches/modules-2/files-2.1/com.h2database/h2/2.4.240/686180ad33981ad943fdc0ab381e619b2c2fdfe5/h2-2.4.240.jar" sourcepath="C:/Users/hengz/.gradle/caches/modules-2/files-2.1/com.h2database/h2/2.4.240/e75d1bac93e36cf12928d56423bdc5d4ecc57fe0/h2-2.4.240-sources.jar">
-		<attributes>
-			<attribute name="test" value="true"/>
-			<attribute name="gradle.buildServer" value="true"/>
-			<attribute name="groupId" value="com.h2database"/>
-			<attribute name="artifactId" value="h2"/>
-			<attribute name="version" value="2.4.240"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="output" path="bin"/>
+	<classpathentry kind="output" path="bin/default"/>
 </classpath>

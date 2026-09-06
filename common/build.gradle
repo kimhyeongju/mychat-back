@@ -1,0 +1,12 @@
+// common 모듈
+// com.khj.playground.common
+// BaseTimeEntity, JpaConfig, 공통 예외/응답 포맷, 유틸.
+// 특정 도메인 지식(User, ChatRoom 등)은 절대 두지 않는다.
+
+dependencies {
+    // 상위 모듈이 그대로 사용하는 것들이라 api로 노출한다.
+    // implementation으로 쓰면 auth/chat/app에서 jakarta.persistence를 못 찾는다.
+    api 'org.springframework.boot:spring-boot-starter-webmvc'
+    api 'org.springframework.boot:spring-boot-starter-data-jpa'
+    api 'org.springframework.boot:spring-boot-starter-validation'
+}

@@ -1,4 +1,5 @@
-build/
+.classpath
+.project
+.settings/
+.factorypath
 bin/
-.gradle/
-!gradle/wrapper/gradle-wrapper.jar

@@ -1,5 +1,6 @@
 package com.khj.playground.entity.jpa;
 
+import com.khj.playground.common.entity.BaseTimeEntity;
 import com.khj.playground.enums.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

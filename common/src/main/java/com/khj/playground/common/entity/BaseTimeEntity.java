@@ -1,4 +1,4 @@
-package com.khj.playground.entity.jpa;
+package com.khj.playground.common.entity;
 
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
