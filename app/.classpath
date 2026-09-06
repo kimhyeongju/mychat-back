@@ -33,6 +33,11 @@
 			<attribute name="gradle.buildServer" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="src" path="/common">
+		<attributes>
+			<attribute name="gradle.buildServer" value="true"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="src" path="bin/generated-sources/annotations">
 		<attributes>
 			<attribute name="optional" value="true"/>

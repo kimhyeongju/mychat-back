@@ -33,14 +33,6 @@ dependencies {
     // implementation 'org.flywaydb:flyway-core'
     // runtimeOnly 'org.flywaydb:flyway-mysql'
 
-    // ---- 코드가 빠져나가면 함께 지울 것들 ----
-    implementation 'org.springframework.boot:spring-boot-starter-security'    // [S3] auth로
-    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'                          // [S3] auth로
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'                            // [S3] auth로
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'                         // [S3] auth로
-
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'  // [S3]+[S4] auth/chat 양쪽에서 사용
-
     // ---- 테스트 ----
     // 전 모듈에 걸친 통합 테스트만 app에 둔다. 모듈별 슬라이스 테스트는 각 모듈에.
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
