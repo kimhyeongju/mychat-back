@@ -29,9 +29,8 @@ dependencies {
     runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
-    // Step 5에서 추가 (지금은 주석)
-    // implementation 'org.flywaydb:flyway-core'
-    // runtimeOnly 'org.flywaydb:flyway-mysql'
+    implementation 'org.springframework.boot:spring-boot-flyway'
+    runtimeOnly 'org.flywaydb:flyway-mysql'
 
     // ---- 테스트 ----
     // 전 모듈에 걸친 통합 테스트만 app에 둔다. 모듈별 슬라이스 테스트는 각 모듈에.

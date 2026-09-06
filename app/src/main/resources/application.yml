@@ -11,6 +11,14 @@ spring:
       include-message: always
       include-binding-errors: always
 
+  flyway:
+    enabled: true
+    locations:
+      - classpath:db/migration/auth
+    # board, invest 모듈 착수 시 아래를 추가한다
+    # - classpath:db/migration/board
+    # - classpath:db/migration/invest
+
 server:
   port: 8080
 
