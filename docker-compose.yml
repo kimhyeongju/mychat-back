@@ -1,0 +1,54 @@
+# dev 프로필 통합 실행: 백엔드 + MariaDB + Redis를 모두 컨테이너로 띄운다.
+# 운영 배포와 가장 가까운 형태라, prod로 나가기 전 최종 검증용으로 쓴다.
+# 순수 코드 개발 중에는 docker-compose.local.yml(DB만)을 쓰고 IDE에서 앱을 직접 실행하는 걸 권장.
+services:
+  mariadb:
+    image: mariadb:11
+    container_name: playground-mariadb-dev
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: '753951'
+      MARIADB_DATABASE: playground_dev
+      MARIADB_USER: playground
+      MARIADB_PASSWORD: '753951'
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: playground-redis-dev
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    container_name: playground-back-dev
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_NAME: playground_dev
+      DB_USERNAME: playground
+      DB_PASSWORD: '753951'
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - '8080:8080'
+
+volumes:
+  mariadb_data:

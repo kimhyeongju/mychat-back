@@ -28,4 +28,4 @@ sms:
 
 logging:
   level:
-    com.khj.mychatback: info
+    com.khj.playground: info

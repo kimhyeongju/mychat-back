@@ -3,3 +3,4 @@
 .settings/
 .factorypath
 bin/
+.env

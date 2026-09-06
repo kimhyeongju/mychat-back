@@ -62,8 +62,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/mychat-back:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/mychat-back:${{ steps.vars.outputs.sha_short }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/khj-playground-back:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/khj-playground-back:${{ steps.vars.outputs.sha_short }}
 
   # 미니PC에 self-hosted runner를 등록한 이후부터 활성화.
   # runner label을 "minipc" 등으로 지정해서 아래 runs-on과 맞추면 됨.
@@ -75,5 +75,5 @@ jobs:
     steps:
       - name: Pull latest image & restart
         run: |
-          docker compose -f /opt/mychat/docker-compose.prod.yml pull backend
-          docker compose -f /opt/mychat/docker-compose.prod.yml up -d backend
+          docker compose -f /opt/khj-playground/docker-compose.prod.yml pull backend
+          docker compose -f /opt/khj-playground/docker-compose.prod.yml up -d backend
