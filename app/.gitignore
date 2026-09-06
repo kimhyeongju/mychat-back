@@ -1,6 +1,11 @@
+.git
+.github
+.gradle
+build
+*/build
+bin
+*/bin
 .classpath
 .project
-.settings/
-.factorypath
-bin/
+.settings
 .env
