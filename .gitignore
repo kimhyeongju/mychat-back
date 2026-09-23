@@ -1,0 +1,25 @@
+# Gradle
+.gradle/
+build/
+*/build/
+
+# IDE
+bin/
+*/bin/
+.classpath
+.project
+*/.project
+.settings/
+*/.settings/
+.factorypath
+.idea/
+*.iml
+
+# 환경변수
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
