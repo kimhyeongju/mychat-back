@@ -4,6 +4,7 @@ import com.khj.playground.auth.dto.AvailabilityResponse;
 import com.khj.playground.auth.dto.FindIdRequest;
 import com.khj.playground.auth.dto.FindIdResponse;
 import com.khj.playground.auth.dto.LoginRequest;
+import com.khj.playground.auth.dto.MeResponse;
 import com.khj.playground.auth.dto.PhoneVerificationConfirmRequest;
 import com.khj.playground.auth.dto.PhoneVerificationSendRequest;
 import com.khj.playground.auth.dto.ResetPasswordRequest;
@@ -11,14 +12,17 @@ import com.khj.playground.auth.dto.SignUpRequest;
 import com.khj.playground.auth.dto.SignUpResponse;
 import com.khj.playground.auth.dto.TokenRefreshRequest;
 import com.khj.playground.auth.dto.TokenResponse;
+import com.khj.playground.auth.dto.UpdateProfileRequest;
 import com.khj.playground.auth.dto.WithdrawRequest;
 import com.khj.playground.auth.service.AuthService;
 import com.khj.playground.auth.service.PhoneVerificationService;
+import com.khj.playground.auth.service.ProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,6 +36,7 @@ public class AuthController {
 
   private final AuthService authService;
   private final PhoneVerificationService phoneVerificationService;
+  private final ProfileService profileService;
 
   @PostMapping("/phone/send-code")
   public void sendPhoneVerificationCode(
@@ -103,6 +108,19 @@ public class AuthController {
     Authentication authentication
   ) {
     authService.withdraw(authentication.getName(), request.password());
+  }
+
+  @GetMapping("/me")
+  public MeResponse me(Authentication authentication) {
+    return profileService.getMe(authentication.getName());
+  }
+
+  @PatchMapping("/me")
+  public MeResponse updateMe(
+    @Valid @RequestBody UpdateProfileRequest request,
+    Authentication authentication
+  ) {
+    return profileService.updateProfile(authentication.getName(), request);
   }
 
   @PostMapping("/logout")
