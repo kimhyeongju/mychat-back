@@ -14,7 +14,7 @@ spring:
   data:
     redis:
       host: localhost
-      port: 6379
+      port: 6380
 
 jwt:
   secret: local-dev-only-secret-key-please-change-this-in-real-env-32bytes+

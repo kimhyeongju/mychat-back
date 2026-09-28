@@ -19,7 +19,7 @@ services:
     container_name: playground-redis-local
     restart: unless-stopped
     ports:
-      - '6379:6379'
+      - '6380:6379'
 
 volumes:
   mariadb_local_data:

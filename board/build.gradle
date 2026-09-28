@@ -1,0 +1,14 @@
+// com.khj.playground.board
+// 게시판, 글, 댓글, 첨부파일.
+// auth의 User 엔티티를 직접 참조하지 않고 UUID + 닉네임 스냅샷으로만 다룬다.
+
+dependencies {
+    implementation project(':auth')
+
+    // 조회수 중복 방지 (Phase C)
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+}

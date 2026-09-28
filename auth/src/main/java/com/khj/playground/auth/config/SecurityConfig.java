@@ -3,9 +3,7 @@ package com.khj.playground.auth.config;
 import com.khj.playground.auth.jwt.JwtAuthenticationFilter;
 import com.khj.playground.auth.jwt.JwtTokenProvider;
 import com.khj.playground.common.security.PublicEndpoints;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -50,15 +48,6 @@ public class SecurityConfig {
     this.moduleEndpoints = moduleEndpoints;
   }
 
-  private String[] allPublicPatterns() {
-    return Stream
-      .concat(
-        Arrays.stream(AUTH_PUBLIC),
-        moduleEndpoints.stream().flatMap(e -> Arrays.stream(e.patterns()))
-      )
-      .toArray(String[]::new);
-  }
-
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http
@@ -67,13 +56,25 @@ public class SecurityConfig {
       .sessionManagement(s ->
         s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
       )
-      .authorizeHttpRequests(auth ->
-        auth
-          .requestMatchers(allPublicPatterns())
-          .permitAll()
-          .anyRequest()
-          .authenticated()
-      )
+      .authorizeHttpRequests(auth -> {
+        auth.requestMatchers(AUTH_PUBLIC).permitAll();
+
+        // 각 모듈이 등록한 공개 경로를 메서드 단위로 허용한다.
+        moduleEndpoints
+          .stream()
+          .flatMap(provider -> provider.endpoints().stream())
+          .forEach(endpoint -> {
+            if (endpoint.method() == null) {
+              auth.requestMatchers(endpoint.pattern()).permitAll();
+            } else {
+              auth
+                .requestMatchers(endpoint.method(), endpoint.pattern())
+                .permitAll();
+            }
+          });
+
+        auth.anyRequest().authenticated();
+      })
       .addFilterBefore(
         new JwtAuthenticationFilter(jwtTokenProvider),
         UsernamePasswordAuthenticationFilter.class

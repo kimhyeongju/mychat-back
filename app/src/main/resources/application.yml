@@ -15,8 +15,8 @@ spring:
     enabled: true
     locations:
       - classpath:db/migration/auth
-    # board, invest 모듈 착수 시 아래를 추가한다
-    # - classpath:db/migration/board
+      # board, invest 모듈 착수 시 아래를 추가한다
+      - classpath:db/migration/board
     # - classpath:db/migration/invest
 
 server:
@@ -28,6 +28,8 @@ springdoc:
     path: /swagger-ui.html
   api-docs:
     path: /v3/api-docs
+  # Pageable을 page/size/sort 개별 쿼리 파라미터로 표시한다.
+  default-flat-param-object: true
 
 management:
   endpoints:
