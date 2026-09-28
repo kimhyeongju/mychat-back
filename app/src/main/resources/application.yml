@@ -19,6 +19,15 @@ spring:
       - classpath:db/migration/board
     # - classpath:db/migration/invest
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+app:
+  upload:
+    dir: ${UPLOAD_DIR:./uploads}
+
 server:
   port: 8080
   forward-headers-strategy: framework

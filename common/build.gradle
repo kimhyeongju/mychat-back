@@ -12,4 +12,8 @@ dependencies {
 
     // PublicEndpoints, CurrentUserProvider가 Spring Security 타입을 쓴다.
     api 'org.springframework.boot:spring-boot-starter-security'
+
+    // 각 모듈의 컨트롤러가 @Schema, @Operation 등을 쓴다.
+    // UI는 app에서만 띄우므로 여기서는 애노테이션만 가져온다.
+    api 'io.swagger.core.v3:swagger-annotations-jakarta:2.2.30'
 }

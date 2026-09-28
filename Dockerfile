@@ -21,10 +21,10 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 RUN addgroup -S spring && adduser -S spring -G spring
+RUN mkdir -p /app/uploads && chown -R spring:spring /app
 USER spring
 
-# app/build.gradle에서 archiveFileName을 app.jar로 고정했으므로 와일드카드가 필요 없다
-COPY --from=build /workspace/app/build/libs/app.jar app.jar
+COPY --from=build --chown=spring:spring /workspace/app/build/libs/app.jar app.jar
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

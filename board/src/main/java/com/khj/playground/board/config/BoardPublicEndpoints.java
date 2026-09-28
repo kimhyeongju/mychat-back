@@ -19,7 +19,9 @@ public class BoardPublicEndpoints implements PublicEndpoints {
       PublicEndpoint.get("/api/boards/*"),
       PublicEndpoint.get("/api/boards/*/posts"),
       PublicEndpoint.get("/api/boards/*/posts/*"),
-      PublicEndpoint.get("/api/posts/*/comments")
+      PublicEndpoint.get("/api/posts/*/comments"),
+      PublicEndpoint.get("/api/posts/*/attachments"),
+      PublicEndpoint.get("/api/attachments/*")
     );
   }
 }

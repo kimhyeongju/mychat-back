@@ -28,6 +28,7 @@ public class PostService {
   private final BoardService boardService;
   private final CurrentUserProvider currentUserProvider;
   private final PostViewCounter viewCounter;
+  private final AttachmentService attachmentService;
 
   public PageResponse<PostSummaryResponse> listPosts(
     String boardSlug,
@@ -140,6 +141,10 @@ public class PostService {
   public void deletePost(UUID postId, Authentication authentication) {
     Post post = findPost(postId);
     requireEditable(post, authentication);
+
+    // DB 행은 CASCADE로 지워지지만 디스크 파일은 직접 정리해야 한다.
+    // attachmentService.deleteFilesByPost(postId);
+    attachmentService.deleteAllByPost(postId);
     postRepository.delete(post);
   }
 

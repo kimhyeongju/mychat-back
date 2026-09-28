@@ -47,8 +47,12 @@ services:
       DB_PASSWORD: '753951'
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads_data:/app/uploads
     ports:
       - '8080:8080'
 
 volumes:
   mariadb_data:
+  uploads_data:
