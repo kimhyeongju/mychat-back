@@ -1,6 +1,7 @@
 package com.khj.playground.auth.dto;
 
 import com.khj.playground.auth.entity.User;
+import com.khj.playground.auth.enums.Role;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -14,6 +15,7 @@ public record MeResponse(
   String nickname,
   String email,
   String phoneNumber,
+  boolean admin,
   LocalDateTime createdAt
 ) {
   public static MeResponse from(User user) {
@@ -23,6 +25,7 @@ public record MeResponse(
       user.getNickname(),
       user.getEmail(),
       maskPhoneNumber(user.getPhoneNumber()),
+      user.getRole() == Role.ADMIN,
       user.getCreatedAt()
     );
   }
