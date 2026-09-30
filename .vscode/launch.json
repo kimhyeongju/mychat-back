@@ -17,14 +17,6 @@
       "name": "Current File",
       "request": "launch",
       "mainClass": "${file}"
-    },
-    {
-      "type": "java",
-      "name": "MychatBackApplication",
-      "request": "launch",
-      "mainClass": "com.khj.mychatback.MychatBackApplication",
-      "projectName": "mychat-back",
-      "args": "--spring.profiles.active=local"
     }
   ]
 }

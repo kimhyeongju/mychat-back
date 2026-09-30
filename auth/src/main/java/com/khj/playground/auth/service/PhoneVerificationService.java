@@ -1,10 +1,13 @@
 package com.khj.playground.auth.service;
 
+import com.khj.playground.auth.sms.SmsSender;
+import java.security.SecureRandom;
 import java.time.Duration;
-import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * 인증번호는 DB가 아닌 Redis에 TTL과 함께 저장한다 (휘발성 데이터이므로 자동 만료가 필요).
@@ -19,18 +22,23 @@ public class PhoneVerificationService {
   private static final Duration VERIFIED_TTL = Duration.ofMinutes(30);
   private static final String CODE_KEY_PREFIX = "phone:code:";
   private static final String VERIFIED_KEY_PREFIX = "phone:verified:";
+  private static final int DAILY_LIMIT = 5;
+  private static final SecureRandom RANDOM = new SecureRandom();
 
   private final StringRedisTemplate redisTemplate;
-  private final SmsService smsService;
+  private final SmsSender smsSender;
 
   public void sendVerificationCode(String phoneNumber) {
+    checkCooldown(phoneNumber);
+    checkDailyLimit(phoneNumber);
+
     String code = generateCode();
     redisTemplate
       .opsForValue()
       .set(CODE_KEY_PREFIX + phoneNumber, code, CODE_TTL);
-    smsService.send(
+    smsSender.send(
       phoneNumber,
-      "[mychat] 인증번호는 [" + code + "] 입니다. 5분 이내에 입력해주세요."
+      "[khj-playground] 인증번호는 " + code + " 입니다."
     );
   }
 
@@ -65,7 +73,42 @@ public class PhoneVerificationService {
   }
 
   private String generateCode() {
-    int code = ThreadLocalRandom.current().nextInt(0, 1_000_000);
-    return String.format("%06d", code);
+    return String.format("%06d", RANDOM.nextInt(1_000_000));
+  }
+
+  /** 같은 번호로 1분 안에 재요청하면 막는다. */
+  private void checkCooldown(String phoneNumber) {
+    String key = "sms:cooldown:" + phoneNumber;
+    Boolean allowed = redisTemplate
+      .opsForValue()
+      .setIfAbsent(key, "1", Duration.ofMinutes(1));
+
+    if (!Boolean.TRUE.equals(allowed)) {
+      throw new ResponseStatusException(
+        HttpStatus.TOO_MANY_REQUESTS,
+        "1분 후에 다시 시도해주세요."
+      );
+    }
+  }
+
+  /**
+   * 번호당 하루 요청 횟수를 제한한다.
+   * 솔라피 개인 계정은 일일 발송 한도가 있어, 남용되면 정상 가입까지 막힌다.
+   */
+  private void checkDailyLimit(String phoneNumber) {
+    String key = "sms:daily:" + phoneNumber;
+    Long count = redisTemplate.opsForValue().increment(key);
+
+    if (count != null && count == 1L) {
+      // 첫 요청일 때만 만료를 건다. 이후 증가에는 TTL이 그대로 유지된다.
+      redisTemplate.expire(key, Duration.ofDays(1));
+    }
+
+    if (count != null && count > DAILY_LIMIT) {
+      throw new ResponseStatusException(
+        HttpStatus.TOO_MANY_REQUESTS,
+        "하루 인증 요청 횟수를 초과했습니다. 내일 다시 시도해주세요."
+      );
+    }
   }
 }

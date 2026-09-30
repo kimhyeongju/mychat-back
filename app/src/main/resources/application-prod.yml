@@ -20,11 +20,10 @@ jwt:
   refresh-token-expiration-ms: ${JWT_REFRESH_EXP_MS:1209600000}
 
 sms:
-  aligo:
-    api-key: ${ALIGO_API_KEY}
-    user-id: ${ALIGO_USER_ID}
-    sender: ${ALIGO_SENDER}
-    mock: ${SMS_MOCK:true}
+  solapi:
+    api-key: ${SOLAPI_API_KEY}
+    api-secret: ${SOLAPI_API_SECRET}
+    sender: ${SOLAPI_SENDER}
 
 logging:
   level:
