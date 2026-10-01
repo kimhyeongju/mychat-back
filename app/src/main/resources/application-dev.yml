@@ -24,3 +24,7 @@ sms:
     user-id: ${ALIGO_USER_ID:changeme}
     sender: ${ALIGO_SENDER:01000000000}
     mock: ${SMS_MOCK:true}
+
+chat:
+  websocket:
+    allowed-origins: http://localhost:3000,http://localhost:8080

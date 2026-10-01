@@ -1,8 +1,8 @@
 package com.khj.playground.auth.config;
 
 import com.khj.playground.auth.jwt.JwtAuthenticationFilter;
-import com.khj.playground.auth.jwt.JwtTokenProvider;
 import com.khj.playground.common.security.PublicEndpoints;
+import com.khj.playground.common.security.TokenAuthenticationResolver;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -37,14 +37,14 @@ public class SecurityConfig {
     "/actuator/health",
   };
 
-  private final JwtTokenProvider jwtTokenProvider;
+  private final TokenAuthenticationResolver tokenResolver;
   private final List<PublicEndpoints> moduleEndpoints;
 
   public SecurityConfig(
-    JwtTokenProvider jwtTokenProvider,
+    TokenAuthenticationResolver tokenResolver,
     List<PublicEndpoints> moduleEndpoints
   ) {
-    this.jwtTokenProvider = jwtTokenProvider;
+    this.tokenResolver = tokenResolver;
     this.moduleEndpoints = moduleEndpoints;
   }
 
@@ -76,7 +76,7 @@ public class SecurityConfig {
         auth.anyRequest().authenticated();
       })
       .addFilterBefore(
-        new JwtAuthenticationFilter(jwtTokenProvider),
+        new JwtAuthenticationFilter(tokenResolver),
         UsernamePasswordAuthenticationFilter.class
       );
     return http.build();

@@ -16,6 +16,7 @@ public class ChatPublicEndpoints implements PublicEndpoints {
   @Override
   public List<PublicEndpoint> endpoints() {
     return List.of(
+      PublicEndpoint.any("/ws/**"),
       PublicEndpoint.get("/api/chat/rooms/open"),
       PublicEndpoint.get("/api/chat/rooms/open/*"),
       PublicEndpoint.get("/api/chat/rooms/open/*/messages"),
