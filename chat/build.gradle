@@ -1,0 +1,16 @@
+// com.khj.playground.chat
+// 오픈 채팅(익명 허용) + DM(로그인 전용).
+// auth의 User 엔티티를 직접 참조하지 않고 UUID + 닉네임 스냅샷으로만 다룬다.
+
+dependencies {
+    implementation project(':auth')
+
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
+    // 익명 세션, 메시지 전송 레이트 리밋
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+}
