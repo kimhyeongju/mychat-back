@@ -6,7 +6,9 @@ import com.khj.playground.chat.entity.ChatMessage;
 import com.khj.playground.chat.entity.ChatRoom;
 import com.khj.playground.chat.repository.ChatMessageRepository;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -34,16 +36,46 @@ public class ChatMessageService {
    * @param cursor null이면 최신 메시지부터, 값이 있으면 그보다 과거 메시지를 반환한다.
    */
   public ChatMessagePage getMessages(UUID roomId, UUID cursor) {
-    // 조회 한 건 더 가져와서 다음 페이지 존재 여부를 판단한다.
+    return getMessages(roomId, cursor, null);
+  }
+
+  /**
+   * @param after null이 아니면 그 시각 이후의 메시지만 반환한다.
+   *              방을 숨긴 사용자가 이전 대화를 볼 수 없게 하는 용도다.
+   */
+  public ChatMessagePage getMessages(
+    UUID roomId,
+    UUID cursor,
+    LocalDateTime after
+  ) {
+    // 한 건 더 가져와서 다음 페이지 존재 여부를 판단한다.
     var pageable = PageRequest.of(0, PAGE_SIZE + 1);
 
-    List<ChatMessage> found = (cursor == null)
-      ? chatMessageRepository.findByRoomIdOrderByIdDesc(roomId, pageable)
-      : chatMessageRepository.findByRoomIdAndIdLessThanOrderByIdDesc(
-        roomId,
-        cursor,
-        pageable
-      );
+    List<ChatMessage> found;
+    if (cursor == null) {
+      found =
+        (after == null)
+          ? chatMessageRepository.findByRoomIdOrderByIdDesc(roomId, pageable)
+          : chatMessageRepository.findByRoomIdAndCreatedAtAfterOrderByIdDesc(
+            roomId,
+            after,
+            pageable
+          );
+    } else {
+      found =
+        (after == null)
+          ? chatMessageRepository.findByRoomIdAndIdLessThanOrderByIdDesc(
+            roomId,
+            cursor,
+            pageable
+          )
+          : chatMessageRepository.findByRoomIdAndIdLessThanAndCreatedAtAfterOrderByIdDesc(
+            roomId,
+            cursor,
+            after,
+            pageable
+          );
+    }
 
     boolean hasMore = found.size() > PAGE_SIZE;
     List<ChatMessage> page = hasMore ? found.subList(0, PAGE_SIZE) : found;
@@ -52,7 +84,7 @@ public class ChatMessageService {
     List<ChatMessageResponse> content = new ArrayList<>(
       page.stream().map(ChatMessageResponse::from).toList()
     );
-    java.util.Collections.reverse(content);
+    Collections.reverse(content);
 
     UUID nextCursor = page.isEmpty() ? null : page.get(page.size() - 1).getId();
 

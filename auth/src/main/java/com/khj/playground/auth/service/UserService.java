@@ -20,6 +20,10 @@ public class UserService {
     String keyword,
     String myUsername
   ) {
+    if (keyword == null || keyword.trim().length() < 2) {
+      // 한 글자 검색을 허용하면 전체 회원 목록을 열거할 수 있다.
+      return List.of();
+    }
     User me = userRepository
       .findByUsername(myUsername)
       .orElseThrow(() ->

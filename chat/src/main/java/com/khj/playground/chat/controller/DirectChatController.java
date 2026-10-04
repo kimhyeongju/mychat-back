@@ -10,11 +10,13 @@ import com.khj.playground.chat.service.ChatSenderResolver;
 import com.khj.playground.chat.service.DirectChatService;
 import com.khj.playground.common.security.CurrentUserProvider;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -63,8 +65,14 @@ public class DirectChatController {
     UUID me = myId(authentication);
     directChatService.requireParticipant(roomId, me);
 
-    ChatMessagePage page = chatMessageService.getMessages(roomId, cursor);
-    // 최신 페이지를 열었을 때만 읽음 처리한다.
+    // 방을 숨긴 적이 있으면 그 이후 메시지만 보여준다.
+    LocalDateTime visibleSince = directChatService.findVisibleSince(roomId, me);
+    ChatMessagePage page = chatMessageService.getMessages(
+      roomId,
+      cursor,
+      visibleSince
+    );
+
     if (cursor == null) {
       directChatService.markRead(roomId, me);
     }
@@ -102,5 +110,20 @@ public class DirectChatController {
 
   private UUID myId(Authentication authentication) {
     return currentUserProvider.resolve(authentication).id();
+  }
+
+  /**
+   * 내 목록에서 방을 숨긴다.
+   * 실제 삭제가 아니라 숨김이므로, 상대가 다시 메시지를 보내면 목록에 나타난다.
+   */
+  @DeleteMapping("/rooms/{roomId}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void hideRoom(
+    @PathVariable("roomId") UUID roomId,
+    Authentication authentication
+  ) {
+    UUID me = myId(authentication);
+    directChatService.requireParticipant(roomId, me);
+    directChatService.hideRoom(roomId, me);
   }
 }

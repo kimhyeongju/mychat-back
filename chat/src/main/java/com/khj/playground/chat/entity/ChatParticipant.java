@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -46,6 +47,24 @@ public class ChatParticipant extends BaseTimeEntity {
   /** 이 값보다 id가 큰 메시지가 안 읽은 메시지다. */
   @Column(name = "last_read_message_id")
   private UUID lastReadMessageId;
+
+  /**
+   * 사용자가 목록에서 숨긴 시각.
+   * 이 시각 이후의 메시지만 조회되며, 새 메시지가 오면 목록에 다시 나타난다.
+   * 물리 삭제가 아니므로 상대방의 대화 기록에는 영향이 없다.
+   */
+  @Column(name = "hidden_at")
+  private LocalDateTime hiddenAt;
+
+  public void hide(LocalDateTime at) {
+    this.hiddenAt = at;
+  }
+
+  /** 숨긴 이후 새 메시지가 왔으면 목록에 다시 보여준다. */
+  public boolean shouldShow(LocalDateTime lastMessageAt) {
+    if (hiddenAt == null) return true;
+    return lastMessageAt != null && lastMessageAt.isAfter(hiddenAt);
+  }
 
   public static ChatParticipant create(ChatRoom room, UUID userId) {
     ChatParticipant participant = new ChatParticipant();

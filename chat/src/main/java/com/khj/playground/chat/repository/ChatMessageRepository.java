@@ -1,6 +1,7 @@
 package com.khj.playground.chat.repository;
 
 import com.khj.playground.chat.entity.ChatMessage;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,6 +36,20 @@ public interface ChatMessageRepository
   List<ChatMessage> findByRoomIdAndIdLessThanOrderByIdDesc(
     UUID roomId,
     UUID cursor,
+    Pageable pageable
+  );
+
+  /** 특정 시각 이후의 메시지만 조회한다. 방을 숨긴 사용자에게 쓰인다. */
+  List<ChatMessage> findByRoomIdAndCreatedAtAfterOrderByIdDesc(
+    UUID roomId,
+    LocalDateTime after,
+    Pageable pageable
+  );
+
+  List<ChatMessage> findByRoomIdAndIdLessThanAndCreatedAtAfterOrderByIdDesc(
+    UUID roomId,
+    UUID cursor,
+    LocalDateTime after,
     Pageable pageable
   );
 }

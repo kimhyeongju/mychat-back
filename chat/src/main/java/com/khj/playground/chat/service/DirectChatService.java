@@ -9,6 +9,7 @@ import com.khj.playground.chat.repository.ChatParticipantRepository;
 import com.khj.playground.chat.repository.ChatRoomRepository;
 import com.khj.playground.common.security.AuthenticatedUser;
 import com.khj.playground.common.security.MemberLookup;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,8 @@ public class DirectChatService {
     return participantRepository
       .findMyRooms(myId)
       .stream()
+      // 숨긴 방은 새 메시지가 오기 전까지 목록에서 제외한다.
+      .filter(p -> p.shouldShow(p.getRoom().getLastMessageAt()))
       .map(participant -> toResponse(participant, myId))
       .toList();
   }
@@ -179,5 +182,31 @@ public class DirectChatService {
   /** UUID를 사전식으로 정렬해 두 사람이 항상 같은 키를 얻도록 한다. */
   private String buildDmKey(UUID a, UUID b) {
     return a.compareTo(b) <= 0 ? a + "_" + b : b + "_" + a;
+  }
+
+  /**
+   * 내 목록에서 방을 숨긴다.
+   * 참여 정보와 메시지는 그대로 남으므로 상대방 쪽 대화에는 영향이 없다.
+   */
+  @Transactional
+  public void hideRoom(UUID roomId, UUID myId) {
+    ChatParticipant participant = participantRepository
+      .findByRoomIdAndUserId(roomId, myId)
+      .orElseThrow(() ->
+        new ResponseStatusException(
+          HttpStatus.NOT_FOUND,
+          "존재하지 않는 방입니다."
+        )
+      );
+
+    participant.hide(LocalDateTime.now());
+  }
+
+  /** 메시지 조회 시 적용할 시작 시각. 숨긴 적이 없으면 null. */
+  public LocalDateTime findVisibleSince(UUID roomId, UUID myId) {
+    return participantRepository
+      .findByRoomIdAndUserId(roomId, myId)
+      .map(ChatParticipant::getHiddenAt)
+      .orElse(null);
   }
 }
