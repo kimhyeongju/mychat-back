@@ -16,6 +16,7 @@ spring:
     locations:
       - classpath:db/migration/auth
       # board, invest 모듈 착수 시 아래를 추가한다
+      - classpath:db/migration/chat
       - classpath:db/migration/board
     # - classpath:db/migration/invest
 

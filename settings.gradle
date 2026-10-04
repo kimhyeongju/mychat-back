@@ -4,7 +4,7 @@ rootProject.name = 'khj-playground-back'
 // 서비스 모듈끼리는 서로 include/참조하지 않는다.
 include 'common'
 include 'auth'
-//include 'chat'
+include 'chat'
 
 // 아직 구현 전이라면 주석 처리해두고, 착수 시점에 해제한다.
 include 'board'

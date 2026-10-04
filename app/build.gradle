@@ -18,7 +18,7 @@ dependencies {
     // ---- 모듈 참조 (Step 1부터 미리 넣어둔다. 모듈이 비어 있어도 무해하다) ----
     implementation project(':common')
     implementation project(':auth')
-    // implementation project(':chat')
+    implementation project(':chat')
     implementation project(':board')
     // implementation project(':invest')
     // common은 auth가 api로 노출하므로 직접 선언할 필요가 없다.

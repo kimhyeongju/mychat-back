@@ -25,6 +25,11 @@ sms:
     api-secret: ${SOLAPI_API_SECRET}
     sender: ${SOLAPI_SENDER}
 
+chat:
+  websocket:
+    # Cloudflare Tunnel을 통해 같은 오리진으로 들어온다.
+    allowed-origins: https://khj-playground.site
+
 logging:
   level:
     com.khj.playground: info
