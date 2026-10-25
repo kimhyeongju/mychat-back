@@ -10,7 +10,8 @@
       "request": "launch",
       "mainClass": "com.khj.playground.PlaygroundApplication",
       "projectName": "app",
-      "args": "--spring.profiles.active=local"
+      "args": "--spring.profiles.active=local",
+      "envFile": "${workspaceFolder}/.env"
     },
     {
       "type": "java",

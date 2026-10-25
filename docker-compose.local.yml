@@ -5,10 +5,10 @@ services:
     container_name: playground-mariadb-local
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: '753951'
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD 필요}
       MARIADB_DATABASE: playground_local
       MARIADB_USER: playground
-      MARIADB_PASSWORD: '753951'
+      MARIADB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD 필요}
     ports:
       - '3307:3306'
     volumes:

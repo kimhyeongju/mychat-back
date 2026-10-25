@@ -7,10 +7,10 @@ services:
     container_name: playground-mariadb-dev
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: '753951'
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD 필요}
       MARIADB_DATABASE: playground_dev
       MARIADB_USER: playground
-      MARIADB_PASSWORD: '753951'
+      MARIADB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD 필요}
     volumes:
       - mariadb_data:/var/lib/mysql
     healthcheck:
@@ -44,7 +44,7 @@ services:
       DB_PORT: 3306
       DB_NAME: playground_dev
       DB_USERNAME: playground
-      DB_PASSWORD: '753951'
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD 필요}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       UPLOAD_DIR: /app/uploads
