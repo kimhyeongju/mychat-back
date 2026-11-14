@@ -134,6 +134,15 @@ public class DirectChatService {
       .toList();
   }
 
+  /** 방의 모든 참여자. 삭제 알림처럼 본인을 포함해 전원에게 보낼 때 쓴다. */
+  public List<UUID> findParticipantIds(UUID roomId) {
+    return participantRepository
+      .findByRoomId(roomId)
+      .stream()
+      .map(ChatParticipant::getUserId)
+      .toList();
+  }
+
   private DirectRoomResponse toResponse(ChatParticipant me, UUID myId) {
     ChatRoom room = me.getRoom();
 

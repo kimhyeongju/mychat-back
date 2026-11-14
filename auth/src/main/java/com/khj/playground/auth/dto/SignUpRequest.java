@@ -14,7 +14,9 @@ public record SignUpRequest(
   )
   String username,
 
-  @NotBlank @Size(min = 8, max = 64) String password,
+  @NotBlank
+  @Pattern(regexp = PasswordPolicy.REGEX, message = PasswordPolicy.MESSAGE)
+  String password,
 
   @NotBlank @Size(min = 2, max = 12) String nickname,
 

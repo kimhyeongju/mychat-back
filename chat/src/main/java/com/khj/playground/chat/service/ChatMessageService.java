@@ -116,6 +116,42 @@ public class ChatMessageService {
   }
 
   /**
+   * 메시지를 삭제한다. 본인이 보낸 메시지이거나 관리자일 때만 허용한다.
+   *
+   * @param requesterId 회원이면 users.id, 익명이면 익명 세션 id
+   * @return 삭제 알림을 보낼 때 필요한 정보
+   */
+  @Transactional
+  public DeletedMessage delete(UUID messageId, UUID requesterId, boolean admin) {
+    ChatMessage message = chatMessageRepository
+      .findById(messageId)
+      .orElseThrow(() ->
+        new ResponseStatusException(
+          HttpStatus.NOT_FOUND,
+          "존재하지 않는 메시지입니다."
+        )
+      );
+
+    if (!admin && !message.getSenderId().equals(requesterId)) {
+      throw new ResponseStatusException(
+        HttpStatus.FORBIDDEN,
+        "권한이 없습니다."
+      );
+    }
+
+    ChatRoom room = message.getRoom();
+    DeletedMessage deleted = new DeletedMessage(
+      message.getId(),
+      room.getId(),
+      room.isOpen()
+    );
+    chatMessageRepository.delete(message);
+    return deleted;
+  }
+
+  public record DeletedMessage(UUID messageId, UUID roomId, boolean openRoom) {}
+
+  /**
    * 메시지 플러딩을 막는다.
    * 익명 사용자는 세션을 새로 발급받아 우회할 수 있으므로,
    * IP 기준 제한은 Phase C에서 WebSocket 레벨에 추가한다.

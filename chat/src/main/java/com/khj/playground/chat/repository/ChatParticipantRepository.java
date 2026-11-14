@@ -22,6 +22,8 @@ public interface ChatParticipantRepository
   )
   List<ChatParticipant> findMyRooms(@Param("userId") UUID userId);
 
+  List<ChatParticipant> findByRoomId(UUID roomId);
+
   /** 같은 방의 상대방. DM은 2인이므로 하나만 나온다. */
   List<ChatParticipant> findByRoomIdAndUserIdNot(UUID roomId, UUID userId);
 }

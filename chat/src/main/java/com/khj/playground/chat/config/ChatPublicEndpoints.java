@@ -22,7 +22,9 @@ public class ChatPublicEndpoints implements PublicEndpoints {
       PublicEndpoint.get("/api/chat/rooms/open/*/messages"),
       // 익명 참여를 위해 세션 발급과 오픈 채팅 전송은 공개한다.
       new PublicEndpoint(HttpMethod.POST, "/api/chat/anonymous-session"),
-      new PublicEndpoint(HttpMethod.POST, "/api/chat/rooms/open/*/messages")
+      new PublicEndpoint(HttpMethod.POST, "/api/chat/rooms/open/*/messages"),
+      // 익명 사용자도 자신의 메시지를 지울 수 있다. 권한은 컨트롤러에서 확인한다.
+      new PublicEndpoint(HttpMethod.DELETE, "/api/chat/messages/*")
     );
   }
 }
