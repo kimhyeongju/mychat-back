@@ -41,9 +41,39 @@ public class StompAuthInterceptor implements ChannelInterceptor {
       StompHeaderAccessor.class
     );
 
-    if (
-      accessor == null || !StompCommand.CONNECT.equals(accessor.getCommand())
-    ) {
+    if (accessor == null) {
+      return message;
+    }
+
+    StompCommand command = accessor.getCommand();
+
+    // 클라이언트가 브로커 목적지(/topic, /queue, /user)로 직접 보내면
+    // 컨트롤러의 저장·속도 제한·발신자 확정을 모두 건너뛴다.
+    if (StompCommand.SEND.equals(command)) {
+      String destination = accessor.getDestination();
+      if (destination == null || !destination.startsWith("/app/")) {
+        log.warn("ws_send_denied destination={}", destination);
+        throw new IllegalArgumentException("허용되지 않는 전송 경로입니다.");
+      }
+      return message;
+    }
+
+    if (StompCommand.SUBSCRIBE.equals(command)) {
+      String destination = accessor.getDestination();
+      boolean allowed =
+        destination != null &&
+        (
+          destination.startsWith("/topic/rooms/") ||
+          destination.startsWith("/user/queue/dm/")
+        );
+      if (!allowed) {
+        log.warn("ws_subscribe_denied destination={}", destination);
+        throw new IllegalArgumentException("허용되지 않는 구독 경로입니다.");
+      }
+      return message;
+    }
+
+    if (!StompCommand.CONNECT.equals(command)) {
       return message;
     }
 

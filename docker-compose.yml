@@ -48,6 +48,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       UPLOAD_DIR: /app/uploads
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 필요}
     volumes:
       - uploads_data:/app/uploads
     ports:

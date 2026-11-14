@@ -24,6 +24,8 @@ public class PhoneVerificationService {
   private static final String VERIFIED_KEY_PREFIX = "phone:verified:";
   private static final int DAILY_LIMIT = 5;
   private static final SecureRandom RANDOM = new SecureRandom();
+  private static final int MAX_ATTEMPTS = 5;
+  private static final String ATTEMPT_KEY_PREFIX = "phone:attempt:";
 
   private final StringRedisTemplate redisTemplate;
   private final SmsSender smsSender;
@@ -38,23 +40,38 @@ public class PhoneVerificationService {
       .set(CODE_KEY_PREFIX + phoneNumber, code, CODE_TTL);
     smsSender.send(
       phoneNumber,
-      "[khj-playground] 인증번호는 " + code + " 입니다."
+      "[khj-playground] 인증번호 " + code + " 를 5분 안에 입력해주세요."
     );
+    redisTemplate.delete(ATTEMPT_KEY_PREFIX + phoneNumber);
   }
 
   /**
    * @return 인증 성공 여부. 성공 시 코드는 즉시 삭제하고 "인증 완료" 상태를 별도로 저장한다.
    */
   public boolean verifyCode(String phoneNumber, String code) {
-    String savedCode = redisTemplate
-      .opsForValue()
-      .get(CODE_KEY_PREFIX + phoneNumber);
-
-    if (savedCode == null || !savedCode.equals(code)) {
+    String codeKey = CODE_KEY_PREFIX + phoneNumber;
+    String attemptKey = ATTEMPT_KEY_PREFIX + phoneNumber;
+    String savedCode = redisTemplate.opsForValue().get(codeKey);
+    if (savedCode == null) {
       return false;
     }
 
-    redisTemplate.delete(CODE_KEY_PREFIX + phoneNumber);
+    Long attempts = redisTemplate.opsForValue().increment(attemptKey);
+    if (attempts != null && attempts == 1L) {
+      redisTemplate.expire(attemptKey, CODE_TTL);
+    }
+    if (attempts != null && attempts > MAX_ATTEMPTS) {
+      // 코드를 폐기해 재발송을 강제한다. 재발송은 하루 5회로 이미 제한된다.
+      redisTemplate.delete(codeKey);
+      return false;
+    }
+
+    if (!savedCode.equals(code)) {
+      return false;
+    }
+
+    redisTemplate.delete(codeKey);
+    redisTemplate.delete(attemptKey);
     redisTemplate
       .opsForValue()
       .set(VERIFIED_KEY_PREFIX + phoneNumber, "true", VERIFIED_TTL);

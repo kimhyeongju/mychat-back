@@ -33,3 +33,9 @@ chat:
 logging:
   level:
     com.khj.playground: info
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
