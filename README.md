@@ -14,7 +14,7 @@
 | 캐시 / 세션   | Redis 7                                                        |
 | 빌드          | Gradle (멀티모듈)                                              |
 | 문서화        | springdoc-openapi (Swagger UI)                                 |
-| 외부 연동     | SOLAPI (SMS 인증)                                              |
+| 외부 연동     | SOLAPI (SMS 인증), Finnhub (미국 주식 시세), Frankfurter (환율) |
 | 배포          | Docker, GitHub Actions (self-hosted runner), Cloudflare Tunnel |
 
 ## 모듈 구조
@@ -24,8 +24,8 @@ khj-playground-back/
 ├── common/   공통 엔티티·예외·모듈 간 계약 인터페이스
 ├── auth/     회원, 인증, JWT, SMS 인증
 ├── board/    게시판, 글, 댓글, 첨부파일
-├── chat/     (예정)
-├── invest/   (예정)
+├── chat/     오픈 채팅, DM, WebSocket(STOMP)
+├── invest/   모의투자 (시세 캐시, 주문, 포트폴리오, 랭킹)
 └── app/      부트스트랩. 유일한 실행 모듈
 ```
 
@@ -220,6 +220,46 @@ SOLAPI 개인 계정을 사용합니다. 일일 발송 한도가 있어 Redis로
 
 글 조회 시 Redis에 `board:post:{id}:viewer:{식별자}` 키를 1시간 TTL로 남깁니다. `SET NX EX` 한 번으로 처리하므로 동시 요청에도 중복 증가가 없습니다. Redis 장애 시에는 조회수만 포기하고 글은 정상 조회됩니다.
 
+## 모의투자
+
+미국 주식을 가상 자금 $100,000(`invest.seed-money`)으로 사고파는 게임입니다. 장부는 USD로만 기록하고 원화는 화면에서 환산만 합니다.
+
+### 시세
+
+| 설정 `invest.market-data.provider` | 동작                                                   |
+| ---------------------------------- | ------------------------------------------------------ |
+| `fake` (기본)                      | 키 없이 서버가 가상 시세를 만든다. local/dev 용         |
+| `finnhub`                          | Finnhub 무료 API 호출. `FINNHUB_API_KEY` 필요. prod 기본 |
+
+Finnhub 무료 티어는 분당 60회 제한이 있어 다음과 같이 호출을 아낍니다.
+
+- 시세는 `invest:quote:{symbol}` 키로 Redis에 24시간 보관하고, 장중 15초·장 마감 중 10분이 지나야 다시 받습니다.
+- 서버 전체 호출을 분당 50회로 제한합니다(`MarketDataRateLimiter`). 한도를 넘으면 이전 시세를 `stale` 표시와 함께 내려줍니다.
+- 누군가 보유 중인 종목은 1분마다 최대 40개씩 미리 갱신합니다(`HeldSymbolRefresher`).
+- 없는 심볼은 1시간 동안 기억해 같은 오타로 반복 호출되지 않게 합니다.
+
+환율(USD→KRW)은 Frankfurter(유럽중앙은행 고시)를 6시간마다 받습니다. 키가 필요 없습니다.
+
+### 거래 규칙
+
+- 시장가 매수·매도만 있으며 24시간 가능합니다. 장 마감 중에는 마지막 체결가로 체결됩니다.
+- 정수 주 단위, 수수료 없음, 공매도 없음.
+- 1시간 넘게 갱신되지 않은 시세로는 주문을 받지 않습니다.
+- 주문은 계좌 행에 `SELECT ... FOR UPDATE`를 걸고 처리해 동시 주문으로 잔고가 음수가 되지 않습니다.
+
+### API (`/api/invest`)
+
+| 메서드 | 경로                          | 인증 | 설명                              |
+| ------ | ----------------------------- | ---- | --------------------------------- |
+| GET    | `/symbols/search?q=`          | —    | 종목 검색 (미국 거래소)           |
+| GET    | `/symbols/{symbol}`           | —    | 시세                              |
+| GET    | `/fx`                         | —    | USD→KRW 환율                      |
+| GET    | `/ranking`                    | —    | 수익률 상위 50명 (로그인 시 내 순위 포함) |
+| GET    | `/account`                    | 필요 | 내 계좌 요약 (없으면 자동 개설)   |
+| GET    | `/portfolio`                  | 필요 | 보유 종목 평가                    |
+| GET    | `/trades`                     | 필요 | 거래 내역 (페이징)                |
+| POST   | `/trades`                     | 필요 | 주문 `{symbol, side, quantity}`   |
+
 ## 파일 첨부
 
 - 저장 위치: 컨테이너 `/app/uploads` (Docker 볼륨 마운트)
@@ -259,6 +299,7 @@ JWT_SECRET=
 SOLAPI_API_KEY=
 SOLAPI_API_SECRET=
 SOLAPI_SENDER=
+FINNHUB_API_KEY=
 ```
 
 ## 새 서비스 모듈 추가 절차

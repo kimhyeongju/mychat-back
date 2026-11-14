@@ -48,6 +48,9 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       UPLOAD_DIR: /app/uploads
+      # 비워두면 가상 시세로 동작한다. 실제 시세를 보려면 .env 에 FINNHUB_API_KEY 를 넣고 provider 를 finnhub 로 바꾼다.
+      INVEST_MARKET_DATA_PROVIDER: ${INVEST_MARKET_DATA_PROVIDER:-fake}
+      FINNHUB_API_KEY: ${FINNHUB_API_KEY:-}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 필요}
     volumes:
       - uploads_data:/app/uploads

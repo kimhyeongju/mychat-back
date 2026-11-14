@@ -16,10 +16,9 @@ spring:
     out-of-order: true
     locations:
       - classpath:db/migration/auth
-      # board, invest 모듈 착수 시 아래를 추가한다
       - classpath:db/migration/chat
       - classpath:db/migration/board
-    # - classpath:db/migration/invest
+      - classpath:db/migration/invest
 
   servlet:
     multipart:
@@ -29,6 +28,14 @@ spring:
 app:
   upload:
     dir: ${UPLOAD_DIR:./uploads}
+invest:
+  # 가입 시 지급하는 가상 자금 (USD)
+  seed-money: 100000
+  market-data:
+    # finnhub | fake. 키가 없는 환경에서는 fake 로 두면 서버가 가상 시세를 만든다.
+    provider: ${INVEST_MARKET_DATA_PROVIDER:fake}
+    finnhub:
+      api-key: ${FINNHUB_API_KEY:}
 
 server:
   port: 8080

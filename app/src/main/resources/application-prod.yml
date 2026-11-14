@@ -25,6 +25,11 @@ sms:
     api-secret: ${SOLAPI_API_SECRET}
     sender: ${SOLAPI_SENDER}
 
+invest:
+  market-data:
+    provider: finnhub
+    finnhub:
+      api-key: ${FINNHUB_API_KEY}
 chat:
   websocket:
     # Cloudflare Tunnel을 통해 같은 오리진으로 들어온다.
