@@ -5,6 +5,7 @@ import com.khj.playground.common.security.CurrentUserProvider;
 import com.khj.playground.invest.dto.AccountSummaryResponse;
 import com.khj.playground.invest.dto.FxResponse;
 import com.khj.playground.invest.dto.PortfolioResponse;
+import com.khj.playground.invest.dto.PublicPortfolioResponse;
 import com.khj.playground.invest.dto.QuoteResponse;
 import com.khj.playground.invest.dto.RankingResponse;
 import com.khj.playground.invest.dto.SymbolSearchResponse;
@@ -92,6 +93,16 @@ public class InvestController {
   @GetMapping("/portfolio")
   public PortfolioResponse portfolio(Authentication authentication) {
     return portfolioService.getPortfolio(userId(authentication));
+  }
+
+  /** 다른 사용자의 포트폴리오(비중만). 로그인한 사용자만 볼 수 있다. */
+  @GetMapping("/users/{userId}/portfolio")
+  public PublicPortfolioResponse userPortfolio(
+    @PathVariable("userId") UUID targetUserId,
+    Authentication authentication
+  ) {
+    userId(authentication); // 인증 확인
+    return portfolioService.getPublicPortfolio(targetUserId);
   }
 
   @GetMapping("/trades")

@@ -17,6 +17,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -42,16 +43,7 @@ public class RankingService {
 
   @Transactional(readOnly = true)
   public RankingResponse getRanking(UUID viewerId) {
-    Snapshot current = snapshot;
-    if (current == null || current.isExpired()) {
-      synchronized (this) {
-        current = snapshot;
-        if (current == null || current.isExpired()) {
-          current = compute();
-          snapshot = current;
-        }
-      }
-    }
+    Snapshot current = currentSnapshot();
 
     RankingEntry me = viewerId == null
       ? null
@@ -63,6 +55,26 @@ public class RankingService {
       current.byUser().size(),
       current.computedAt()
     );
+  }
+
+  /** 특정 사용자의 현재 순위 항목. 계좌가 없으면 비어 있다. */
+  @Transactional(readOnly = true)
+  public Optional<RankingEntry> findEntry(UUID userId) {
+    return Optional.ofNullable(currentSnapshot().byUser().get(userId));
+  }
+
+  private Snapshot currentSnapshot() {
+    Snapshot current = snapshot;
+    if (current == null || current.isExpired()) {
+      synchronized (this) {
+        current = snapshot;
+        if (current == null || current.isExpired()) {
+          current = compute();
+          snapshot = current;
+        }
+      }
+    }
+    return current;
   }
 
   private Snapshot compute() {
