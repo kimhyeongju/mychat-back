@@ -14,6 +14,7 @@ import com.khj.playground.invest.dto.SymbolSearchResponse;
 import com.khj.playground.invest.dto.TradeRequest;
 import com.khj.playground.invest.dto.TradeResponse;
 import com.khj.playground.invest.dto.TradeResultResponse;
+import com.khj.playground.invest.dto.WatchlistItemResponse;
 import com.khj.playground.invest.dto.WeekInfoResponse;
 import com.khj.playground.invest.service.FxService;
 import com.khj.playground.invest.service.PortfolioService;
@@ -22,6 +23,7 @@ import com.khj.playground.invest.service.RankingService;
 import com.khj.playground.invest.service.SymbolService;
 import com.khj.playground.invest.service.ScoreService;
 import com.khj.playground.invest.service.TradeService;
+import com.khj.playground.invest.service.WatchlistService;
 import com.khj.playground.invest.service.WeekInfoService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -31,9 +33,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -53,6 +57,7 @@ public class InvestController {
   private final PortfolioService portfolioService;
   private final TradeService tradeService;
   private final ScoreService scoreService;
+  private final WatchlistService watchlistService;
   private final WeekInfoService weekInfoService;
   private final CurrentUserProvider currentUserProvider;
 
@@ -128,6 +133,31 @@ public class InvestController {
   ) {
     userId(authentication); // 인증 확인
     return portfolioService.getPublicPortfolio(targetUserId);
+  }
+
+  // ----- 관심 종목 -----
+
+  @GetMapping("/watchlist")
+  public List<WatchlistItemResponse> watchlist(Authentication authentication) {
+    return watchlistService.list(userId(authentication));
+  }
+
+  @PutMapping("/watchlist/{symbol}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void addWatch(
+    @PathVariable("symbol") String symbol,
+    Authentication authentication
+  ) {
+    watchlistService.add(userId(authentication), symbol);
+  }
+
+  @DeleteMapping("/watchlist/{symbol}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void removeWatch(
+    @PathVariable("symbol") String symbol,
+    Authentication authentication
+  ) {
+    watchlistService.remove(userId(authentication), symbol);
   }
 
   @GetMapping("/trades")

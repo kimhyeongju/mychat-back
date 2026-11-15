@@ -260,6 +260,12 @@ Alpaca 무료 시세의 특징은 다음과 같습니다.
 - 누적 포인트 순위는 `GET /api/invest/leaderboard`, 사용자별 1·2·3위 횟수와 총 포인트는 `GET /api/invest/users/{userId}/profile`, 이번 주 마감 시각과 지난주 결과는 `GET /api/invest/week`입니다.
 - 정산은 폐장 2분 뒤의 시세를 쓰므로, 시간외 거래가 활발한 종목은 공식 종가와 약간 다를 수 있습니다.
 
+### 관심 종목
+
+- 사용자별로 최대 50개를 담을 수 있고(`invest_watchlist`), 본인만 볼 수 있으며 주간 정산에도 지워지지 않습니다.
+- `GET /api/invest/watchlist`, `PUT|DELETE /api/invest/watchlist/{symbol}`(로그인 필요, 추가·삭제는 여러 번 호출해도 결과가 같음).
+- 관심 종목은 보유 종목과 함께 `HeldSymbolRefresher`가 주기적으로 갱신해서 목록의 시세가 오래되지 않습니다.
+
 ### 거래 규칙
 
 - 시장가 매수·매도만 있으며 24시간 가능합니다. 장 마감 중에는 마지막 체결가로 체결됩니다.
