@@ -15,6 +15,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
+ * /api/admin/** 는 ADMIN 권한만 접근할 수 있다.
  * 인증 없이 접근 가능한 경로: 회원가입/로그인/휴대폰 인증, 헬스체크, Swagger, WebSocket 핸드셰이크.
  * 그 외 API는 JwtAuthenticationFilter가 채워주는 인증 정보가 있어야 접근 가능.
  */
@@ -72,6 +73,9 @@ public class SecurityConfig {
                 .permitAll();
             }
           });
+
+        // 운영자 전용 API. 권한은 JWT의 role 클레임(ROLE_ADMIN)으로 판단한다.
+        auth.requestMatchers("/api/admin/**").hasRole("ADMIN");
 
         auth.anyRequest().authenticated();
       })

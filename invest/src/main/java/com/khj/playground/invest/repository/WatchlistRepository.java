@@ -22,6 +22,10 @@ public interface WatchlistRepository extends JpaRepository<WatchlistItem, Long> 
     @Param("symbol") String symbol
   );
 
+  @Modifying
+  @Query("DELETE FROM WatchlistItem w WHERE w.userId = :userId")
+  int deleteAllByUserId(@Param("userId") UUID userId);
+
   /** 누군가 관심 종목으로 둔 심볼 전체. 시세 주기 갱신 대상에 포함한다. */
   @Query("SELECT DISTINCT w.symbol FROM WatchlistItem w")
   List<String> findDistinctSymbols();

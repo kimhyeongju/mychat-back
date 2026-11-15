@@ -40,6 +40,10 @@ public interface WeeklyResultRepository extends JpaRepository<WeeklyResult, Long
   )
   List<Object[]> summarize(@org.springframework.data.repository.query.Param("userId") UUID userId);
 
+  @org.springframework.data.jpa.repository.Modifying
+  @Query("DELETE FROM WeeklyResult r WHERE r.userId = :userId")
+  int deleteAllByUserId(@org.springframework.data.repository.query.Param("userId") UUID userId);
+
   List<WeeklyResult> findTop10ByUserIdOrderByWeekIdDesc(UUID userId);
 
   List<WeeklyResult> findByWeekIdAndRankNoLessThanEqualOrderByRankNoAscIdAsc(
