@@ -25,14 +25,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 수익률 순위. 전체 계좌를 평가해 정렬한다.
- * 계산 비용이 있어 60초 동안 메모리에 캐시한다. 단일 인스턴스를 전제로 한다.
+ * 계산 비용이 있어 20초 동안 메모리에 캐시한다. 단일 인스턴스를 전제로 한다.
  */
 @Service
 @RequiredArgsConstructor
 public class RankingService {
 
   private static final int TOP_N = 50;
-  private static final Duration CACHE_TTL = Duration.ofSeconds(60);
+  private static final Duration CACHE_TTL = Duration.ofSeconds(20);
 
   private final InvestAccountRepository accountRepository;
   private final HoldingRepository holdingRepository;
@@ -85,7 +85,7 @@ public class RankingService {
     for (Holding h : holdingRepository.findAllWithAccount()) {
       BigDecimal price = priceCache.computeIfAbsent(
         h.getSymbol(),
-        s -> priceService.findQuote(s).map(v -> v.quote().price()).orElse(null)
+        s -> priceService.findQuoteForValuation(s).map(v -> v.quote().price()).orElse(null)
       );
       BigDecimal effective = price != null ? price : h.getAvgCost();
       BigDecimal value = effective.multiply(BigDecimal.valueOf(h.getQuantity()));

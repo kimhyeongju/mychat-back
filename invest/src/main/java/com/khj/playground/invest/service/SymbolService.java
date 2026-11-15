@@ -36,6 +36,7 @@ public class SymbolService {
   private final MarketDataRateLimiter rateLimiter;
   private final StockSymbolRepository symbolRepository;
   private final StringRedisTemplate redisTemplate;
+  private final KoreanSymbolSearch koreanSymbolSearch;
 
   @Transactional
   public List<SymbolInfo> search(String rawQuery) {
@@ -46,6 +47,12 @@ public class SymbolService {
         "검색어는 1~30자여야 합니다."
       );
     }
+
+    // 한글 검색어는 별칭 테이블에서만 찾는다. 외부 API 는 한글을 모르고, 호출 한도도 쓰지 않는다.
+    if (KoreanSymbolSearch.containsKorean(query)) {
+      return koreanSymbolSearch.search(query);
+    }
+
     String key = SEARCH_PREFIX + query.toLowerCase(Locale.ROOT);
 
     Optional<List<SymbolInfo>> cached = readSearchCache(key);
@@ -101,6 +108,7 @@ public class SymbolService {
     return symbolRepository
       .findById(symbol)
       .map(StockSymbol::getName)
+      .or(() -> koreanSymbolSearch.findNameEn(symbol))
       .orElse(symbol);
   }
 

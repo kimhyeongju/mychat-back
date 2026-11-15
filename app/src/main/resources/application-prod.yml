@@ -27,9 +27,15 @@ sms:
 
 invest:
   market-data:
-    provider: finnhub
+    # alpaca(기본) | finnhub. 키는 기본값 없이 반드시 환경변수로 받는다.
+    provider: ${INVEST_MARKET_DATA_PROVIDER:alpaca}
+    calls-per-minute: ${INVEST_CALLS_PER_MINUTE:150}
+    refresh-interval-ms: ${INVEST_REFRESH_INTERVAL_MS:15000}
     finnhub:
-      api-key: ${FINNHUB_API_KEY}
+      api-key: ${FINNHUB_API_KEY:}
+    alpaca:
+      key-id: ${ALPACA_API_KEY_ID:}
+      secret: ${ALPACA_API_SECRET_KEY:}
 chat:
   websocket:
     # Cloudflare Tunnel을 통해 같은 오리진으로 들어온다.

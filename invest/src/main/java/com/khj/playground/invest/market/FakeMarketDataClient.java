@@ -73,6 +73,7 @@ public class FakeMarketDataClient implements MarketDataClient {
         price.max(base),
         price.min(base),
         base,
+        Instant.now(),
         Instant.now()
       )
     );

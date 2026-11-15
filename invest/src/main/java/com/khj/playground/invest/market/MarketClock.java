@@ -16,6 +16,19 @@ public class MarketClock {
   private static final ZoneId NEW_YORK = ZoneId.of("America/New_York");
   private static final LocalTime OPEN = LocalTime.of(9, 30);
   private static final LocalTime CLOSE = LocalTime.of(16, 0);
+  private static final LocalTime EXT_OPEN = LocalTime.of(4, 0);
+  private static final LocalTime EXT_CLOSE = LocalTime.of(20, 0);
+
+  /** 프리마켓·애프터마켓을 포함한 거래 시간(04:00~20:00 ET). 정규장 중에도 true. */
+  public boolean isExtendedSessionOpen() {
+    ZonedDateTime now = ZonedDateTime.now(NEW_YORK);
+    DayOfWeek day = now.getDayOfWeek();
+    if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) {
+      return false;
+    }
+    LocalTime time = now.toLocalTime();
+    return !time.isBefore(EXT_OPEN) && time.isBefore(EXT_CLOSE);
+  }
 
   public boolean isRegularSessionOpen() {
     ZonedDateTime now = ZonedDateTime.now(NEW_YORK);

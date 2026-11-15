@@ -32,10 +32,19 @@ invest:
   # 가입 시 지급하는 가상 자금 (USD)
   seed-money: 100000
   market-data:
-    # finnhub | fake. 키가 없는 환경에서는 fake 로 두면 서버가 가상 시세를 만든다.
+    # alpaca | finnhub | fake. 키가 없는 환경에서는 fake 로 두면 서버가 가상 시세를 만든다.
     provider: ${INVEST_MARKET_DATA_PROVIDER:fake}
+    # 외부 시세 API 서버 전체 호출 한도(분당). Finnhub 무료 60 → 50, Alpaca 무료 200 → 150.
+    calls-per-minute: ${INVEST_CALLS_PER_MINUTE:50}
+    # 보유 종목 시세를 갱신하는 주기(ms). 일괄 조회가 되는 Alpaca 는 15000 까지 줄여도 된다.
+    refresh-interval-ms: ${INVEST_REFRESH_INTERVAL_MS:60000}
     finnhub:
       api-key: ${FINNHUB_API_KEY:}
+    alpaca:
+      key-id: ${ALPACA_API_KEY_ID:}
+      secret: ${ALPACA_API_SECRET_KEY:}
+      # 무료 계정은 iex. 모의(paper) 계정 키는 trading-url 이 paper-api 여야 한다.
+      feed: iex
 
 server:
   port: 8080

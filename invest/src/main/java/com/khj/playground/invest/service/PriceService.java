@@ -6,7 +6,10 @@ import com.khj.playground.invest.market.MarketDataException;
 import com.khj.playground.invest.market.Quote;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +26,7 @@ import org.springframework.web.server.ResponseStatusException;
  * - invest:quote:{symbol}         마지막으로 받은 시세. 24시간 보관해 외부 장애 시 폴백으로 쓴다.
  * - invest:quote:missing:{symbol} 존재하지 않는 심볼 표시. 같은 오타로 반복 호출되는 것을 막는다.
  *
- * "신선함"은 TTL 이 아니라 fetchedAt 으로 판단한다. 장중 15초, 장 마감 중 10분이 지나면 다시 받는다.
+ * "신선함"은 TTL 이 아니라 fetchedAt 으로 판단한다. 정규장 15초, 시간외 60초, 그 외 10분이 지나면 다시 받는다.
  */
 @Slf4j
 @Service
@@ -32,7 +35,10 @@ public class PriceService {
 
   private static final Pattern SYMBOL = Pattern.compile("^[A-Z][A-Z0-9.\\-]{0,9}$");
   private static final Duration FRESH_WHILE_OPEN = Duration.ofSeconds(15);
+  private static final Duration FRESH_WHILE_EXTENDED = Duration.ofSeconds(60);
   private static final Duration FRESH_WHILE_CLOSED = Duration.ofMinutes(10);
+  private static final Duration VALUATION_GRACE = Duration.ofMinutes(2);
+  private static final int BATCH_CHUNK = 50;
   private static final Duration KEEP = Duration.ofHours(24);
   private static final Duration MISSING_TTL = Duration.ofHours(1);
   private static final String QUOTE_PREFIX = "invest:quote:";
@@ -101,6 +107,22 @@ public class PriceService {
     }
   }
 
+  /**
+   * 평가용(포트폴리오·랭킹). 캐시가 2분 이내면 신선하지 않아도 그대로 쓴다.
+   * 보유 종목은 HeldSymbolRefresher 가 따로 갱신하므로, 평가를 그릴 때마다 종목별로
+   * 외부 호출이 나가 호출 한도를 태우는 일을 막는다.
+   */
+  public Optional<QuoteView> findQuoteForValuation(String symbol) {
+    Optional<Quote> cached = readCache(symbol);
+    if (cached.isPresent()) {
+      Duration age = Duration.between(cached.get().fetchedAt(), Instant.now());
+      if (isFresh(cached.get()) || age.compareTo(VALUATION_GRACE) < 0) {
+        return Optional.of(new QuoteView(cached.get(), false));
+      }
+    }
+    return findQuote(symbol);
+  }
+
   /** 주문 체결용. 1시간 넘게 갱신되지 않은 시세로는 체결하지 않는다. */
   public Quote getQuoteForTrade(String symbol) {
     QuoteView view = getQuote(symbol);
@@ -128,10 +150,52 @@ public class PriceService {
     return true;
   }
 
+  /**
+   * 오래된 종목만 골라 일괄 조회로 갱신한다. 호출은 한 묶음(최대 50종목)에 한도 1회만 쓴다.
+   *
+   * @return 새로 받아 캐시에 쓴 종목 수
+   */
+  int refreshBatch(List<String> symbols) {
+    List<String> stale = new ArrayList<>();
+    for (String symbol : symbols) {
+      if (isKnownMissing(symbol)) continue;
+      Optional<Quote> cached = readCache(symbol);
+      if (cached.isEmpty() || !isFresh(cached.get())) {
+        stale.add(symbol);
+      }
+    }
+    if (stale.isEmpty()) {
+      return 0;
+    }
+
+    int refreshed = 0;
+    for (int i = 0; i < stale.size(); i += BATCH_CHUNK) {
+      List<String> chunk = stale.subList(i, Math.min(i + BATCH_CHUNK, stale.size()));
+      if (!rateLimiter.tryAcquire()) {
+        break;
+      }
+      try {
+        Map<String, Quote> fetched = marketDataClient.fetchQuotes(chunk);
+        fetched.values().forEach(this::writeCache);
+        refreshed += fetched.size();
+      } catch (MarketDataException e) {
+        log.warn("일괄 시세 갱신 실패 rateLimited={}", e.isRateLimited());
+        break;
+      }
+    }
+    return refreshed;
+  }
+
+  boolean supportsBatch() {
+    return marketDataClient.supportsBatch();
+  }
+
   private boolean isFresh(Quote quote) {
     Duration window = marketClock.isRegularSessionOpen()
       ? FRESH_WHILE_OPEN
-      : FRESH_WHILE_CLOSED;
+      : marketClock.isExtendedSessionOpen()
+        ? FRESH_WHILE_EXTENDED
+        : FRESH_WHILE_CLOSED;
     return Duration
       .between(quote.fetchedAt(), Instant.now())
       .compareTo(window) <

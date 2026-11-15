@@ -14,7 +14,7 @@
 | 캐시 / 세션   | Redis 7                                                        |
 | 빌드          | Gradle (멀티모듈)                                              |
 | 문서화        | springdoc-openapi (Swagger UI)                                 |
-| 외부 연동     | SOLAPI (SMS 인증), Finnhub (미국 주식 시세), Frankfurter (환율) |
+| 외부 연동     | SOLAPI (SMS 인증), Alpaca (미국 주식 시세), Frankfurter (환율) |
 | 배포          | Docker, GitHub Actions (self-hosted runner), Cloudflare Tunnel |
 
 ## 모듈 구조
@@ -226,17 +226,26 @@ SOLAPI 개인 계정을 사용합니다. 일일 발송 한도가 있어 Redis로
 
 ### 시세
 
-| 설정 `invest.market-data.provider` | 동작                                                   |
-| ---------------------------------- | ------------------------------------------------------ |
-| `fake` (기본)                      | 키 없이 서버가 가상 시세를 만든다. local/dev 용         |
-| `finnhub`                          | Finnhub 무료 API 호출. `FINNHUB_API_KEY` 필요. prod 기본 |
+| 설정 `invest.market-data.provider` | 동작                                                                         |
+| ---------------------------------- | ---------------------------------------------------------------------------- |
+| `fake` (기본)                      | 키 없이 서버가 가상 시세를 만든다. local/dev 용                               |
+| `alpaca`                           | Alpaca 무료 시세(IEX). `ALPACA_API_KEY_ID`, `ALPACA_API_SECRET_KEY` 필요. prod 기본 |
+| `finnhub`                          | Finnhub 무료 API. `FINNHUB_API_KEY` 필요. 분당 60회라 갱신이 느리다           |
 
-Finnhub 무료 티어는 분당 60회 제한이 있어 다음과 같이 호출을 아낍니다.
+Alpaca 무료 시세의 특징은 다음과 같습니다.
 
-- 시세는 `invest:quote:{symbol}` 키로 Redis에 24시간 보관하고, 장중 15초·장 마감 중 10분이 지나야 다시 받습니다.
-- 서버 전체 호출을 분당 50회로 제한합니다(`MarketDataRateLimiter`). 한도를 넘으면 이전 시세를 `stale` 표시와 함께 내려줍니다.
-- 누군가 보유 중인 종목은 1분마다 최대 40개씩 미리 갱신합니다(`HeldSymbolRefresher`).
+- 시세는 스냅샷 API로 여러 종목을 한 번에 받습니다. 서버 전체 호출은 분당 150회로 제한합니다(`INVEST_CALLS_PER_MINUTE`).
+- 종목 검색은 거래 가능한 종목 목록(`/v2/assets`)을 하루 한 번 받아 메모리에서 찾습니다. 검색 자체는 외부 호출이 없습니다.
+- 무료 실시간 데이터는 IEX 한 거래소의 체결만 반영합니다. 시간외나 체결이 드문 종목은 가격이 늦게 바뀔 수 있어 화면에 "마지막 체결 시각"을 함께 보여줍니다.
+- 한글 검색("애플")은 `invest_symbol_aliases` 테이블(V404/V405)로 처리합니다. 종목을 추가하려면 이 테이블에 행을 넣으면 됩니다.
+
+호출을 아끼는 방식은 공통입니다.
+
+- 시세는 `invest:quote:{symbol}` 키로 Redis에 24시간 보관하고, 정규장 15초·시간외(04:00~20:00 ET) 60초·그 외 10분이 지나야 다시 받습니다.
+- 누군가 보유 중인 종목은 `HeldSymbolRefresher`가 `INVEST_REFRESH_INTERVAL_MS`(prod 기본 15초)마다 일괄 갱신합니다.
+- 한도를 넘으면 이전 시세를 `stale` 표시와 함께 내려줍니다.
 - 없는 심볼은 1시간 동안 기억해 같은 오타로 반복 호출되지 않게 합니다.
+- 랭킹은 서버에서 20초 캐시합니다.
 
 환율(USD→KRW)은 Frankfurter(유럽중앙은행 고시)를 6시간마다 받습니다. 키가 필요 없습니다.
 
@@ -300,6 +309,8 @@ SOLAPI_API_KEY=
 SOLAPI_API_SECRET=
 SOLAPI_SENDER=
 FINNHUB_API_KEY=
+ALPACA_API_KEY_ID=
+ALPACA_API_SECRET_KEY=
 ```
 
 ## 새 서비스 모듈 추가 절차

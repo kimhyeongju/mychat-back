@@ -93,7 +93,8 @@ public class FinnhubMarketDataClient implements MarketDataClient {
         body.h(),
         body.l(),
         body.o(),
-        Instant.now()
+        Instant.now(),
+        body.t() == null || body.t() == 0 ? null : Instant.ofEpochSecond(body.t())
       )
     );
   }

@@ -49,7 +49,7 @@ public class PortfolioService {
     boolean anyStale = false;
 
     for (Holding h : holdings) {
-      Optional<PriceService.QuoteView> view = priceService.findQuote(h.getSymbol());
+      Optional<PriceService.QuoteView> view = priceService.findQuoteForValuation(h.getSymbol());
       BigDecimal price = view.map(v -> v.quote().price()).orElse(null);
       boolean stale = view.map(PriceService.QuoteView::stale).orElse(true);
       anyStale |= stale;
@@ -116,7 +116,7 @@ public class PortfolioService {
     BigDecimal holdingsValue = BigDecimal.ZERO;
     boolean anyStale = false;
     for (Holding h : holdings) {
-      Optional<PriceService.QuoteView> view = priceService.findQuote(h.getSymbol());
+      Optional<PriceService.QuoteView> view = priceService.findQuoteForValuation(h.getSymbol());
       BigDecimal price = view.map(v -> v.quote().price()).orElse(h.getAvgCost());
       anyStale |= view.map(PriceService.QuoteView::stale).orElse(true);
       BigDecimal value = price.multiply(BigDecimal.valueOf(h.getQuantity()));

@@ -6,6 +6,8 @@ import java.time.Instant;
 /**
  * 종목 하나의 시세 스냅샷. 시세 제공자가 무엇이든 이 형태로 통일한다.
  * change/changePercent 는 제공자가 주지 않으면 null 일 수 있다.
+ * tradedAt 은 마지막 체결 시각이다. 제공자가 모르면 null.
+ * 체결이 드문 종목은 fetchedAt 이 최신이어도 tradedAt 은 오래됐을 수 있다.
  */
 public record Quote(
   String symbol,
@@ -16,7 +18,8 @@ public record Quote(
   BigDecimal high,
   BigDecimal low,
   BigDecimal open,
-  Instant fetchedAt
+  Instant fetchedAt,
+  Instant tradedAt
 ) {
   private static final String SEP = "|";
 
@@ -31,13 +34,14 @@ public record Quote(
       str(high),
       str(low),
       str(open),
-      String.valueOf(fetchedAt.toEpochMilli())
+      String.valueOf(fetchedAt.toEpochMilli()),
+      tradedAt == null ? "" : String.valueOf(tradedAt.toEpochMilli())
     );
   }
 
   public static Quote deserialize(String symbol, String raw) {
     String[] parts = raw.split("\\|", -1);
-    if (parts.length != 8) {
+    if (parts.length != 9) {
       throw new IllegalArgumentException("손상된 시세 캐시: " + raw);
     }
     return new Quote(
@@ -49,7 +53,8 @@ public record Quote(
       num(parts[4]),
       num(parts[5]),
       num(parts[6]),
-      Instant.ofEpochMilli(Long.parseLong(parts[7]))
+      Instant.ofEpochMilli(Long.parseLong(parts[7])),
+      parts[8].isEmpty() ? null : Instant.ofEpochMilli(Long.parseLong(parts[8]))
     );
   }
 
