@@ -2,6 +2,7 @@ package com.khj.playground.invest.dto;
 
 import com.khj.playground.invest.entity.Trade;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -13,7 +14,8 @@ public record TradeResponse(
   long quantity,
   BigDecimal price,
   BigDecimal amount,
-  LocalDateTime createdAt
+  LocalDateTime createdAt,
+  LocalDate weekEndDate
 ) {
   public static TradeResponse from(Trade trade, String name) {
     return new TradeResponse(
@@ -24,7 +26,8 @@ public record TradeResponse(
       trade.getQuantity(),
       trade.getPrice(),
       trade.getAmount(),
-      trade.getCreatedAt()
+      trade.getCreatedAt(),
+      trade.getWeekEndDate()
     );
   }
 }

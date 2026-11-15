@@ -4,7 +4,9 @@ import com.khj.playground.common.dto.PageResponse;
 import com.khj.playground.common.security.CurrentUserProvider;
 import com.khj.playground.invest.dto.AccountSummaryResponse;
 import com.khj.playground.invest.dto.FxResponse;
+import com.khj.playground.invest.dto.LeaderboardEntry;
 import com.khj.playground.invest.dto.PortfolioResponse;
+import com.khj.playground.invest.dto.ProfileResponse;
 import com.khj.playground.invest.dto.PublicPortfolioResponse;
 import com.khj.playground.invest.dto.QuoteResponse;
 import com.khj.playground.invest.dto.RankingResponse;
@@ -12,12 +14,15 @@ import com.khj.playground.invest.dto.SymbolSearchResponse;
 import com.khj.playground.invest.dto.TradeRequest;
 import com.khj.playground.invest.dto.TradeResponse;
 import com.khj.playground.invest.dto.TradeResultResponse;
+import com.khj.playground.invest.dto.WeekInfoResponse;
 import com.khj.playground.invest.service.FxService;
 import com.khj.playground.invest.service.PortfolioService;
 import com.khj.playground.invest.service.PriceService;
 import com.khj.playground.invest.service.RankingService;
 import com.khj.playground.invest.service.SymbolService;
+import com.khj.playground.invest.service.ScoreService;
 import com.khj.playground.invest.service.TradeService;
+import com.khj.playground.invest.service.WeekInfoService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -47,6 +52,8 @@ public class InvestController {
   private final RankingService rankingService;
   private final PortfolioService portfolioService;
   private final TradeService tradeService;
+  private final ScoreService scoreService;
+  private final WeekInfoService weekInfoService;
   private final CurrentUserProvider currentUserProvider;
 
   // ----- 공개 -----
@@ -81,6 +88,24 @@ public class InvestController {
   @GetMapping("/ranking")
   public RankingResponse ranking(Authentication authentication) {
     return rankingService.getRanking(optionalUserId(authentication));
+  }
+
+  /** 이번 주 마감 시각, 규칙, 지난주 결과. */
+  @GetMapping("/week")
+  public WeekInfoResponse week() {
+    return weekInfoService.getInfo();
+  }
+
+  /** 누적 포인트 순위. */
+  @GetMapping("/leaderboard")
+  public List<LeaderboardEntry> leaderboard() {
+    return scoreService.leaderboard();
+  }
+
+  /** 사용자 프로필(누적 포인트, 1·2·3위 횟수, 최근 성적). */
+  @GetMapping("/users/{userId}/profile")
+  public ProfileResponse profile(@PathVariable("userId") UUID targetUserId) {
+    return scoreService.profile(targetUserId);
   }
 
   // ----- 회원 -----

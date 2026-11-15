@@ -34,9 +34,16 @@ public class TradeService {
   private final TradeRepository tradeRepository;
   private final PriceService priceService;
   private final SymbolService symbolService;
+  private final WeeklyPeriod weeklyPeriod;
 
   @Transactional
   public TradeResultResponse execute(UUID userId, TradeRequest request) {
+    if (weeklyPeriod.isSettling()) {
+      throw new ResponseStatusException(
+        HttpStatus.SERVICE_UNAVAILABLE,
+        "주간 정산 중입니다. 잠시 후 다시 시도해주세요."
+      );
+    }
     String symbol = priceService.normalize(request.symbol());
 
     // 시세는 잠금 전에 받는다. 외부 호출 중에 행 잠금을 들고 있지 않기 위해서다.
@@ -79,7 +86,14 @@ public class TradeService {
     }
 
     Trade trade = tradeRepository.save(
-      Trade.of(account, symbol, request.side(), request.quantity(), price)
+      Trade.of(
+        account,
+        symbol,
+        request.side(),
+        request.quantity(),
+        price,
+        weeklyPeriod.currentWeekEnd()
+      )
     );
     String name = symbolService.resolveName(symbol);
 

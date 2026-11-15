@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 public interface HoldingRepository extends JpaRepository<Holding, UUID> {
@@ -19,4 +20,9 @@ public interface HoldingRepository extends JpaRepository<Holding, UUID> {
   /** 랭킹 계산용. 계좌별로 묶지 않고 한 번에 가져와 메모리에서 합산한다. */
   @Query("SELECT h FROM Holding h JOIN FETCH h.account")
   List<Holding> findAllWithAccount();
+
+  /** 주간 초기화. 모든 보유 종목을 지운다. */
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query("DELETE FROM Holding h")
+  int deleteAllHoldings();
 }

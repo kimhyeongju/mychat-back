@@ -14,6 +14,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -52,12 +53,17 @@ public class Trade extends BaseTimeEntity {
   @Column(nullable = false, precision = 18, scale = 2)
   private BigDecimal amount;
 
+  /** 이 거래가 속한 주의 마감일. 주간 정산에서 그 주에 거래한 사용자를 가린다. */
+  @Column(name = "week_end_date")
+  private LocalDate weekEndDate;
+
   public static Trade of(
     InvestAccount account,
     String symbol,
     TradeSide side,
     long quantity,
-    BigDecimal price
+    BigDecimal price,
+    LocalDate weekEndDate
   ) {
     Trade trade = new Trade();
     trade.account = account;
@@ -65,6 +71,7 @@ public class Trade extends BaseTimeEntity {
     trade.side = side;
     trade.quantity = quantity;
     trade.price = price;
+    trade.weekEndDate = weekEndDate;
     trade.amount = price
       .multiply(BigDecimal.valueOf(quantity))
       .setScale(2, RoundingMode.HALF_UP);

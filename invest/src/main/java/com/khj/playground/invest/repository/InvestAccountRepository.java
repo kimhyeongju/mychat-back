@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -20,4 +21,9 @@ public interface InvestAccountRepository
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT a FROM InvestAccount a WHERE a.userId = :userId")
   Optional<InvestAccount> findByUserIdForUpdate(@Param("userId") UUID userId);
+
+  /** 주간 초기화. 모든 계좌의 현금을 시작 자금으로 되돌린다. */
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query("UPDATE InvestAccount a SET a.cash = a.seedMoney")
+  int resetAllCash();
 }
