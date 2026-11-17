@@ -1,0 +1,37 @@
+# chat errors.
+
+message-not-found:
+  code: '2001'
+  message: 'The message does not exist.'
+
+message-rate-limited:
+  code: '2002'
+  message: 'You are sending messages too quickly.'
+
+room-forbidden:
+  code: '2003'
+  message: 'You cannot access this room.'
+
+room-not-found:
+  code: '2004'
+  message: 'The room does not exist.'
+
+anonymous-session-required:
+  code: '2005'
+  message: 'An anonymous session is required.'
+
+anonymous-session-invalid:
+  code: '2006'
+  message: 'The anonymous session is not valid.'
+
+direct-chat-self:
+  code: '2007'
+  message: 'You cannot chat with yourself.'
+
+direct-peer-not-found:
+  code: '2008'
+  message: 'The other user was not found.'
+
+direct-participant-missing:
+  code: '2009'
+  message: 'Participant information is missing.'

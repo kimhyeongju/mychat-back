@@ -1,0 +1,40 @@
+# Common errors. Code range 9xxx. Module-specific errors live in each module's i18n/exception_en.yml.
+unauthorized:
+  code: '9001'
+  message: 'Login is required, or your session has expired. Please log in again.'
+
+forbidden:
+  code: '9002'
+  message: 'You do not have permission.'
+
+validation-error:
+  code: '9003'
+  message: 'The input is not valid.'
+
+malformed-request:
+  code: '9004'
+  message: 'The request is malformed.'
+
+resource-not-found:
+  code: '9005'
+  message: 'The requested resource was not found.'
+
+method-not-allowed:
+  code: '9006'
+  message: 'This request method is not allowed.'
+
+payload-too-large:
+  code: '9007'
+  message: 'The file is too large.'
+
+unsupported-media-type:
+  code: '9008'
+  message: 'This request format is not supported.'
+
+too-many-requests:
+  code: '9009'
+  message: 'Too many requests. Please try again later.'
+
+unknown-error:
+  code: '9999'
+  message: 'An unknown error occurred. Please try again later.'

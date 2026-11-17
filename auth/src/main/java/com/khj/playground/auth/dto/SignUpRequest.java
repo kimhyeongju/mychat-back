@@ -6,22 +6,26 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record SignUpRequest(
-  @NotBlank
-  @Size(min = 4, max = 20)
+  @NotBlank(message = "{user-dto.username.not-blank}")
+  @Size(min = 4, max = 20, message = "{user-dto.username.size}")
   @Pattern(
     regexp = "^[a-zA-Z0-9_]+$",
-    message = "아이디는 영문/숫자/언더스코어만 사용할 수 있습니다."
+    message = "{user-dto.username.pattern}"
   )
   String username,
 
-  @NotBlank
+  @NotBlank(message = "{user-dto.password.not-blank}")
   @Pattern(regexp = PasswordPolicy.REGEX, message = PasswordPolicy.MESSAGE)
   String password,
 
-  @NotBlank @Size(min = 2, max = 12) String nickname,
+  @NotBlank(message = "{user-dto.nickname.not-blank}")
+  @Size(min = 2, max = 12, message = "{user-dto.nickname.size}")
+  String nickname,
 
-  @NotBlank @Pattern(regexp = "^01[0-9]{8,9}$") String phoneNumber,
+  @NotBlank(message = "{user-dto.phone-number.not-blank}")
+  @Pattern(regexp = "^01[0-9]{8,9}$", message = "{user-dto.phone-number.pattern}")
+  String phoneNumber,
 
   // 필수 아님
-  @Email String email
+  @Email(message = "{user-dto.email.email}") String email
 ) {}

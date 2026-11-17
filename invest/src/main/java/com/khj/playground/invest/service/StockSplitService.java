@@ -1,5 +1,7 @@
 package com.khj.playground.invest.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.invest.exception.InvestErrorCode;
 import com.khj.playground.invest.dto.SplitAdjustmentResponse;
 import com.khj.playground.invest.entity.Holding;
 import com.khj.playground.invest.entity.InvestAccount;
@@ -28,12 +30,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.server.ResponseStatusException;
 
 /**
  * 주식 분할/병합을 보유 수량과 평균 단가에 반영한다.
@@ -312,10 +312,7 @@ public class StockSplitService {
     for (StockSplit split :
       splitRepository.findBySymbolAndAppliedAtIsNullAndExDateLessThanEqual(symbol, today)) {
       if (isPostSplit(quote, split)) {
-        throw new ResponseStatusException(
-          HttpStatus.SERVICE_UNAVAILABLE,
-          "주식 분할/병합을 반영하는 중입니다. 잠시 후 다시 시도해주세요."
-        );
+        throw new ApiException(InvestErrorCode.SPLIT_IN_PROGRESS);
       }
     }
   }

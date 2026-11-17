@@ -1,0 +1,53 @@
+# board errors.
+
+attachment-empty:
+  code: '3001'
+  message: 'The file is empty.'
+
+attachment-limit:
+  code: '3002'
+  message: 'You can attach up to {0} files.'
+
+post-not-found:
+  code: '3003'
+  message: 'The post does not exist.'
+
+attachment-not-found:
+  code: '3004'
+  message: 'The attachment does not exist.'
+
+board-not-found:
+  code: '3005'
+  message: 'The board does not exist.'
+
+comment-not-found:
+  code: '3006'
+  message: 'The comment does not exist.'
+
+file-name-invalid:
+  code: '3007'
+  message: 'The file name is not valid.'
+
+file-save-failed:
+  code: '3008'
+  message: 'Failed to save the file.'
+
+file-not-found:
+  code: '3009'
+  message: 'The file was not found.'
+
+file-read-failed:
+  code: '3010'
+  message: 'The file could not be read.'
+
+file-extension-missing:
+  code: '3011'
+  message: 'Files without an extension cannot be uploaded.'
+
+file-type-not-allowed:
+  code: '3012'
+  message: 'This file type is not allowed: {0}'
+
+board-admin-only:
+  code: '3013'
+  message: 'Only administrators can write posts on this board.'

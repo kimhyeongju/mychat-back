@@ -1,5 +1,8 @@
 package com.khj.playground.chat.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.chat.exception.ChatErrorCode;
+import com.khj.playground.common.exception.CommonErrorCode;
 import com.khj.playground.chat.dto.ChatMessagePage;
 import com.khj.playground.chat.dto.ChatMessageResponse;
 import com.khj.playground.chat.entity.ChatMessage;
@@ -14,10 +17,8 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -126,17 +127,11 @@ public class ChatMessageService {
     ChatMessage message = chatMessageRepository
       .findById(messageId)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.NOT_FOUND,
-          "존재하지 않는 메시지입니다."
-        )
+        new ApiException(ChatErrorCode.MESSAGE_NOT_FOUND)
       );
 
     if (!admin && !message.getSenderId().equals(requesterId)) {
-      throw new ResponseStatusException(
-        HttpStatus.FORBIDDEN,
-        "권한이 없습니다."
-      );
+      throw new ApiException(CommonErrorCode.FORBIDDEN);
     }
 
     ChatRoom room = message.getRoom();
@@ -165,10 +160,7 @@ public class ChatMessageService {
     }
 
     if (count != null && count > RATE_LIMIT) {
-      throw new ResponseStatusException(
-        HttpStatus.TOO_MANY_REQUESTS,
-        "메시지를 너무 빠르게 보내고 있습니다."
-      );
+      throw new ApiException(ChatErrorCode.MESSAGE_RATE_LIMITED);
     }
   }
 }

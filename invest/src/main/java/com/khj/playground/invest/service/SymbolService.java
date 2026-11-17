@@ -1,5 +1,7 @@
 package com.khj.playground.invest.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.invest.exception.InvestErrorCode;
 import com.khj.playground.invest.entity.StockSymbol;
 import com.khj.playground.invest.market.MarketDataClient;
 import com.khj.playground.invest.market.MarketDataException;
@@ -13,10 +15,8 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 /**
  * 종목 검색과 이름 조회.
@@ -42,10 +42,7 @@ public class SymbolService {
   public List<SymbolInfo> search(String rawQuery) {
     String query = rawQuery == null ? "" : rawQuery.trim();
     if (query.length() < 1 || query.length() > 30) {
-      throw new ResponseStatusException(
-        HttpStatus.BAD_REQUEST,
-        "검색어는 1~30자여야 합니다."
-      );
+      throw new ApiException(InvestErrorCode.SEARCH_QUERY_INVALID);
     }
 
     // 한글 검색어는 별칭 테이블에서만 찾는다. 외부 API 는 한글을 모르고, 호출 한도도 쓰지 않는다.
@@ -61,20 +58,14 @@ public class SymbolService {
     }
 
     if (!rateLimiter.tryAcquire()) {
-      throw new ResponseStatusException(
-        HttpStatus.TOO_MANY_REQUESTS,
-        "검색 요청이 많습니다. 잠시 후 다시 시도해주세요."
-      );
+      throw new ApiException(InvestErrorCode.SEARCH_RATE_LIMITED);
     }
 
     List<SymbolInfo> results;
     try {
       results = marketDataClient.search(query);
     } catch (MarketDataException e) {
-      throw new ResponseStatusException(
-        HttpStatus.SERVICE_UNAVAILABLE,
-        "종목 검색에 실패했습니다. 잠시 후 다시 시도해주세요."
-      );
+      throw new ApiException(InvestErrorCode.SEARCH_FAILED);
     }
 
     writeSearchCache(key, results);

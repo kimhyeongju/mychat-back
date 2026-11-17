@@ -295,6 +295,30 @@ Alpaca 무료 시세의 특징은 다음과 같습니다.
 | GET    | `/trades`                     | 필요 | 거래 내역 (페이징)                |
 | POST   | `/trades`                     | 필요 | 주문 `{symbol, side, quantity}`   |
 
+## 오류 응답과 다국어(i18n)
+
+모든 API 오류는 같은 형식이다.
+
+```json
+{ "code": "1005", "message": "아이디 또는 비밀번호가 올바르지 않습니다.", "status": 401, "fieldErrors": [] }
+```
+
+- `message` 는 요청의 `Accept-Language`(ko, en)에 맞춰 내려간다. 헤더가 없거나 지원하지 않는 언어면 한국어다. 프론트는 `Accept-Language` 를 항상 보낸다(`api/client.js`).
+- 입력 검증 실패는 `code: 9003`, `message` 에 첫 번째 사유, `fieldErrors` 에 필드별 사유가 담긴다.
+- 로그인이 안 됐거나 토큰이 만료되면 **401**, 권한이 모자라면 **403** 이다. (예전에는 둘 다 본문 없는 403 이라 만료된 토큰이 재발급되지 않았다.)
+
+**문구는 코드에 쓰지 않는다.** 서비스에서는 `throw new ApiException(AuthErrorCode.LOGIN_FAILED)` 처럼 오류 코드만 던지고, 문구는 yml 에 둔다.
+
+| 파일 | 내용 |
+| --- | --- |
+| `{module}/src/main/resources/i18n/exception_{ko,en}.yml` | 오류 키 → `code`(숫자 문자열), `message` (`{0}` 자리에 인자) |
+| `{module}/src/main/resources/i18n/valid-message_{ko,en}.yml` | DTO 검증 문구. DTO 에서 `message = "{user-dto.email.email}"` 로 가리킨다 |
+
+- 코드 대역: auth 1xxx, chat 2xxx, board 3xxx, invest 4xxx, 공통 9xxx. 모듈마다 `XxxErrorCode` enum(`ErrorCode` 구현)이 오류 키와 HTTP 상태를 가진다.
+- 모든 모듈의 같은 이름 파일을 `classpath*:` 로 모아 합친다(`YamlMessageSource`). 새 오류를 추가하려면 enum 상수 하나와 ko/en yml 항목 하나씩이다. 키는 두 언어 파일에 모두 있어야 한다.
+- 컨트롤러 밖(보안 필터)의 401/403 은 `ApiErrorWriter` 가 같은 형식으로 쓴다.
+- 아직 한국어 고정인 것: 채팅 STOMP 연결 오류(`StompAuthInterceptor`)와 로그 메시지.
+
 ## 파일 첨부
 
 - 저장 위치: 컨테이너 `/app/uploads` (Docker 볼륨 마운트)

@@ -1,5 +1,7 @@
 package com.khj.playground.invest.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.auth.exception.AuthErrorCode;
 import com.khj.playground.common.security.AuthenticatedUser;
 import com.khj.playground.common.security.MemberLookup;
 import com.khj.playground.invest.dto.LeaderboardEntry;
@@ -19,10 +21,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 /** 누적 포인트 리더보드와 사용자 프로필. 주간 정산 결과(WeeklyResult)를 집계한다. */
 @Service
@@ -54,7 +54,7 @@ public class ScoreService {
     Object[] sum = resultRepository.summarize(userId).get(0);
     int weeksPlayed = num(sum[4]);
     if (nickname == null && weeksPlayed == 0) {
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.");
+      throw new ApiException(AuthErrorCode.USER_NOT_FOUND);
     }
 
     List<WeeklyResult> recent = resultRepository.findTop10ByUserIdOrderByWeekIdDesc(

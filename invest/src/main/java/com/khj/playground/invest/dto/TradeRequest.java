@@ -7,7 +7,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record TradeRequest(
-  @NotBlank String symbol,
-  @NotNull TradeSide side,
-  @Min(1) @Max(1_000_000) long quantity
+  @NotBlank(message = "{invest-dto.symbol.not-blank}") String symbol,
+  @NotNull(message = "{invest-dto.side.not-null}") TradeSide side,
+  @Min(value = 1, message = "{invest-dto.quantity.min}")
+  @Max(value = 1_000_000, message = "{invest-dto.quantity.max}")
+  long quantity
 ) {}

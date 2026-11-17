@@ -1,5 +1,7 @@
 package com.khj.playground.auth.controller;
 
+import com.khj.playground.auth.exception.AuthErrorCode;
+import com.khj.playground.common.exception.ApiException;
 import com.khj.playground.auth.dto.AvailabilityResponse;
 import com.khj.playground.auth.dto.FindIdRequest;
 import com.khj.playground.auth.dto.FindIdResponse;
@@ -54,10 +56,7 @@ public class AuthController {
       request.code()
     );
     if (!verified) {
-      throw new org.springframework.web.server.ResponseStatusException(
-        org.springframework.http.HttpStatus.BAD_REQUEST,
-        "인증번호가 올바르지 않거나 만료되었습니다."
-      );
+      throw new ApiException(AuthErrorCode.VERIFICATION_CODE_INVALID);
     }
   }
 

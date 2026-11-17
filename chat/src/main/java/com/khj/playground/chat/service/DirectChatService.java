@@ -1,5 +1,7 @@
 package com.khj.playground.chat.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.chat.exception.ChatErrorCode;
 import com.khj.playground.chat.dto.DirectRoomResponse;
 import com.khj.playground.chat.entity.ChatMessage;
 import com.khj.playground.chat.entity.ChatParticipant;
@@ -13,10 +15,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -44,19 +44,13 @@ public class DirectChatService {
   @Transactional
   public DirectRoomResponse startDirect(UUID myId, UUID targetUserId) {
     if (myId.equals(targetUserId)) {
-      throw new ResponseStatusException(
-        HttpStatus.BAD_REQUEST,
-        "자기 자신과는 대화할 수 없습니다."
-      );
+      throw new ApiException(ChatErrorCode.DIRECT_CHAT_SELF);
     }
 
     memberLookup
       .findById(targetUserId)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.NOT_FOUND,
-          "상대방을 찾을 수 없습니다."
-        )
+        new ApiException(ChatErrorCode.DIRECT_PEER_NOT_FOUND)
       );
 
     String dmKey = buildDmKey(myId, targetUserId);
@@ -78,10 +72,7 @@ public class DirectChatService {
     ChatParticipant me = participantRepository
       .findByRoomIdAndUserId(room.getId(), myId)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.INTERNAL_SERVER_ERROR,
-          "참여 정보가 없습니다."
-        )
+        new ApiException(ChatErrorCode.DIRECT_PARTICIPANT_MISSING)
       );
 
     return toResponse(me, myId);
@@ -93,18 +84,12 @@ public class DirectChatService {
    */
   public ChatRoom requireParticipant(UUID roomId, UUID myId) {
     if (!participantRepository.existsByRoomIdAndUserId(roomId, myId)) {
-      throw new ResponseStatusException(
-        HttpStatus.NOT_FOUND,
-        "존재하지 않는 방입니다."
-      );
+      throw new ApiException(ChatErrorCode.ROOM_NOT_FOUND);
     }
     return chatRoomRepository
       .findById(roomId)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.NOT_FOUND,
-          "존재하지 않는 방입니다."
-        )
+        new ApiException(ChatErrorCode.ROOM_NOT_FOUND)
       );
   }
 
@@ -114,10 +99,7 @@ public class DirectChatService {
     ChatParticipant participant = participantRepository
       .findByRoomIdAndUserId(roomId, myId)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.NOT_FOUND,
-          "존재하지 않는 방입니다."
-        )
+        new ApiException(ChatErrorCode.ROOM_NOT_FOUND)
       );
 
     messageRepository
@@ -202,10 +184,7 @@ public class DirectChatService {
     ChatParticipant participant = participantRepository
       .findByRoomIdAndUserId(roomId, myId)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.NOT_FOUND,
-          "존재하지 않는 방입니다."
-        )
+        new ApiException(ChatErrorCode.ROOM_NOT_FOUND)
       );
 
     participant.hide(LocalDateTime.now());

@@ -1,0 +1,24 @@
+# 입력 검증 문구. DTO 에서 message = "{키}" 로 가리킨다. {min}, {max} 는 검증기가 채운다.
+user-dto:
+  username:
+    not-blank: '아이디를 입력해주세요.'
+    size: '아이디는 {min}~{max}자여야 합니다.'
+    pattern: '아이디는 영문/숫자/언더스코어만 사용할 수 있습니다.'
+  password:
+    not-blank: '비밀번호를 입력해주세요.'
+    size: '비밀번호는 {min}~{max}자여야 합니다.'
+    pattern: '비밀번호는 영문자, 숫자, 특수문자를 모두 포함해 8~64자로 입력해주세요.'
+  nickname:
+    not-blank: '닉네임을 입력해주세요.'
+    size: '닉네임은 {min}~{max}자여야 합니다.'
+  phone-number:
+    not-blank: '휴대폰 번호를 입력해주세요.'
+    pattern: '휴대폰 번호 형식이 올바르지 않습니다. (하이픈 없이 숫자만)'
+    admin-pattern: '전화번호는 숫자 8~20자리여야 합니다.'
+  email:
+    email: '이메일 형식이 올바르지 않습니다.'
+  verification-code:
+    not-blank: '인증번호를 입력해주세요.'
+    pattern: '인증번호는 6자리 숫자입니다.'
+  refresh-token:
+    not-blank: '리프레시 토큰이 필요합니다.'

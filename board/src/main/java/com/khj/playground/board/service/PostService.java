@@ -1,5 +1,8 @@
 package com.khj.playground.board.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.board.exception.BoardErrorCode;
+import com.khj.playground.common.exception.CommonErrorCode;
 import com.khj.playground.board.dto.PostDetailResponse;
 import com.khj.playground.board.dto.PostRequest;
 import com.khj.playground.board.dto.PostSummaryResponse;
@@ -14,7 +17,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -106,10 +108,7 @@ public class PostService {
     AuthenticatedUser user = currentUserProvider.resolve(authentication);
 
     if (board.isAdminOnly() && !user.admin()) {
-      throw new ResponseStatusException(
-        HttpStatus.FORBIDDEN,
-        "이 게시판에는 관리자만 글을 쓸 수 있습니다."
-      );
+      throw new ApiException(BoardErrorCode.BOARD_ADMIN_ONLY);
     }
 
     Post post = Post.create(
@@ -152,10 +151,7 @@ public class PostService {
     return postRepository
       .findById(postId)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.NOT_FOUND,
-          "존재하지 않는 글입니다."
-        )
+        new ApiException(BoardErrorCode.POST_NOT_FOUND)
       );
   }
 
@@ -175,10 +171,7 @@ public class PostService {
   private void requireEditable(Post post, Authentication authentication) {
     AuthenticatedUser user = currentUserProvider.resolve(authentication);
     if (!post.isAuthor(user.id()) && !user.admin()) {
-      throw new ResponseStatusException(
-        HttpStatus.FORBIDDEN,
-        "권한이 없습니다."
-      );
+      throw new ApiException(CommonErrorCode.FORBIDDEN);
     }
   }
 }

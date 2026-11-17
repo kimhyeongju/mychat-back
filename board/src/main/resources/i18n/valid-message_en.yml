@@ -1,0 +1,10 @@
+board-dto:
+  post-title:
+    not-blank: 'Please enter a title.'
+    size: 'The title must be at most {max} characters.'
+  post-content:
+    not-blank: 'Please enter the content.'
+    size: 'The content must be at most {max} characters.'
+  comment-content:
+    not-blank: 'Please enter a comment.'
+    size: 'The comment must be at most {max} characters.'

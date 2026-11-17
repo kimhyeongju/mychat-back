@@ -1,0 +1,6 @@
+chat-dto:
+  message-content:
+    not-blank: '메시지를 입력해주세요.'
+    size: '메시지는 {max}자 이하여야 합니다.'
+  target-user-id:
+    not-null: '대화 상대를 선택해주세요.'

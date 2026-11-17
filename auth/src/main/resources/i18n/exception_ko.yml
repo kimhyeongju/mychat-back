@@ -1,0 +1,80 @@
+# 인증/회원 오류. 코드 대역 1xxx.
+phone-verification-required:
+  code: '1001'
+  message: '휴대폰 인증을 먼저 완료해주세요.'
+
+username-duplicated:
+  code: '1002'
+  message: '이미 사용 중인 아이디입니다.'
+
+nickname-duplicated:
+  code: '1003'
+  message: '이미 사용 중인 닉네임입니다.'
+
+phone-duplicated:
+  code: '1004'
+  message: '이미 가입된 휴대폰 번호입니다.'
+
+login-failed:
+  code: '1005'
+  message: '아이디 또는 비밀번호가 올바르지 않습니다.'
+
+token-invalid:
+  code: '1006'
+  message: '만료되었거나 유효하지 않은 토큰입니다.'
+
+token-revoked:
+  code: '1007'
+  message: '만료되었거나 이미 폐기된 토큰입니다.'
+
+user-session-invalid:
+  code: '1008'
+  message: '존재하지 않는 사용자입니다. 다시 로그인해주세요.'
+
+user-not-found:
+  code: '1009'
+  message: '사용자를 찾을 수 없습니다.'
+
+account-not-found-by-phone:
+  code: '1010'
+  message: '해당 번호로 가입된 계정이 없습니다.'
+
+username-not-found:
+  code: '1011'
+  message: '존재하지 않는 아이디입니다.'
+
+find-account-mismatch:
+  code: '1012'
+  message: '아이디와 휴대폰 번호가 일치하지 않습니다.'
+
+password-incorrect:
+  code: '1013'
+  message: '비밀번호가 올바르지 않습니다.'
+
+sms-rate-limit-minute:
+  code: '1014'
+  message: '1분 후에 다시 시도해주세요.'
+
+sms-rate-limit-daily:
+  code: '1015'
+  message: '하루 인증 요청 횟수를 초과했습니다. 내일 다시 시도해주세요.'
+
+sms-send-failed:
+  code: '1016'
+  message: '인증번호 발송에 실패했습니다. 잠시 후 다시 시도해주세요.'
+
+verification-code-invalid:
+  code: '1017'
+  message: '인증번호가 올바르지 않거나 만료되었습니다.'
+
+admin-cannot-modify:
+  code: '1018'
+  message: '운영자 계정은 이 화면에서 수정할 수 없습니다.'
+
+admin-cannot-delete:
+  code: '1019'
+  message: '운영자 계정은 삭제할 수 없습니다.'
+
+phone-generation-failed:
+  code: '1020'
+  message: '임시 전화번호를 만들지 못했습니다. 다시 시도해주세요.'

@@ -1,5 +1,8 @@
 package com.khj.playground.board.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.board.exception.BoardErrorCode;
+import com.khj.playground.common.exception.CommonErrorCode;
 import com.khj.playground.board.dto.CommentRequest;
 import com.khj.playground.board.dto.CommentResponse;
 import com.khj.playground.board.entity.Comment;
@@ -11,7 +14,6 @@ import com.khj.playground.common.security.CurrentUserProvider;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -95,10 +97,7 @@ public class CommentService {
     return postRepository
       .findById(postId)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.NOT_FOUND,
-          "존재하지 않는 글입니다."
-        )
+        new ApiException(BoardErrorCode.POST_NOT_FOUND)
       );
   }
 
@@ -106,10 +105,7 @@ public class CommentService {
     return commentRepository
       .findById(commentId)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.NOT_FOUND,
-          "존재하지 않는 댓글입니다."
-        )
+        new ApiException(BoardErrorCode.COMMENT_NOT_FOUND)
       );
   }
 
@@ -139,10 +135,7 @@ public class CommentService {
   private void requireEditable(Comment comment, Authentication authentication) {
     AuthenticatedUser user = currentUserProvider.resolve(authentication);
     if (!comment.isAuthor(user.id()) && !user.admin()) {
-      throw new ResponseStatusException(
-        HttpStatus.FORBIDDEN,
-        "권한이 없습니다."
-      );
+      throw new ApiException(CommonErrorCode.FORBIDDEN);
     }
   }
 }

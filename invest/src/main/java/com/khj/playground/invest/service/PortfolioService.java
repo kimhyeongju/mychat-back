@@ -1,5 +1,8 @@
 package com.khj.playground.invest.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.auth.exception.AuthErrorCode;
+import com.khj.playground.invest.exception.InvestErrorCode;
 import com.khj.playground.invest.dto.AccountSummaryResponse;
 import com.khj.playground.invest.dto.PortfolioResponse;
 import com.khj.playground.invest.dto.PositionResponse;
@@ -12,8 +15,6 @@ import com.khj.playground.invest.dto.PublicPositionResponse;
 import com.khj.playground.invest.dto.RankingEntry;
 import com.khj.playground.invest.repository.HoldingRepository;
 import com.khj.playground.invest.repository.InvestAccountRepository;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -96,15 +97,12 @@ public class PortfolioService {
     AuthenticatedUser target = memberLookup
       .findById(targetUserId)
       .orElseThrow(() ->
-        new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")
+        new ApiException(AuthErrorCode.USER_NOT_FOUND)
       );
     InvestAccount account = accountRepository
       .findByUserId(targetUserId)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.NOT_FOUND,
-          "모의투자에 참여하지 않은 사용자입니다."
-        )
+        new ApiException(InvestErrorCode.PARTICIPANT_NOT_FOUND)
       );
 
     List<Holding> holdings = holdingRepository.findByAccountIdOrderBySymbolAsc(

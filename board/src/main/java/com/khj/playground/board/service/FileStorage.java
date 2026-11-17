@@ -1,5 +1,7 @@
 package com.khj.playground.board.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.board.exception.BoardErrorCode;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,10 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 @Slf4j
 @Component
@@ -60,19 +60,13 @@ public class FileStorage {
     // 저장 경로가 root를 벗어나지 않는지 최종 확인한다.
     Path target = root.resolve(storedName).normalize();
     if (!target.startsWith(root)) {
-      throw new ResponseStatusException(
-        HttpStatus.BAD_REQUEST,
-        "잘못된 파일명입니다."
-      );
+      throw new ApiException(BoardErrorCode.FILE_NAME_INVALID);
     }
 
     try (var in = file.getInputStream()) {
       Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
     } catch (IOException e) {
-      throw new ResponseStatusException(
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        "파일 저장에 실패했습니다."
-      );
+      throw new ApiException(BoardErrorCode.FILE_SAVE_FAILED);
     }
 
     return storedName;
@@ -81,19 +75,13 @@ public class FileStorage {
   public Resource load(String storedName) {
     Path target = root.resolve(storedName).normalize();
     if (!target.startsWith(root) || !Files.exists(target)) {
-      throw new ResponseStatusException(
-        HttpStatus.NOT_FOUND,
-        "파일을 찾을 수 없습니다."
-      );
+      throw new ApiException(BoardErrorCode.FILE_NOT_FOUND);
     }
 
     try {
       return new UrlResource(target.toUri());
     } catch (IOException e) {
-      throw new ResponseStatusException(
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        "파일을 읽을 수 없습니다."
-      );
+      throw new ApiException(BoardErrorCode.FILE_READ_FAILED);
     }
   }
 
@@ -111,10 +99,7 @@ public class FileStorage {
 
   private String extractExtension(String originalFilename) {
     if (originalFilename == null || !originalFilename.contains(".")) {
-      throw new ResponseStatusException(
-        HttpStatus.BAD_REQUEST,
-        "확장자가 없는 파일은 업로드할 수 없습니다."
-      );
+      throw new ApiException(BoardErrorCode.FILE_EXTENSION_MISSING);
     }
 
     String extension = originalFilename
@@ -122,10 +107,7 @@ public class FileStorage {
       .toLowerCase(Locale.ROOT);
 
     if (!ALLOWED_EXTENSIONS.contains(extension)) {
-      throw new ResponseStatusException(
-        HttpStatus.BAD_REQUEST,
-        "허용되지 않는 파일 형식입니다: " + extension
-      );
+      throw new ApiException(BoardErrorCode.FILE_TYPE_NOT_ALLOWED, extension);
     }
 
     return extension;

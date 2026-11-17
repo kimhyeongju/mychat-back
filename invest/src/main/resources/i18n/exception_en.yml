@@ -1,0 +1,53 @@
+# invest errors.
+
+quote-stale-for-trade:
+  code: '4001'
+  message: 'The latest price is unavailable, so the order could not be processed. Please try again later.'
+
+symbol-invalid:
+  code: '4002'
+  message: 'The ticker format is not valid.'
+
+symbol-not-found:
+  code: '4003'
+  message: 'The ticker does not exist.'
+
+quote-unavailable:
+  code: '4004'
+  message: 'The price is unavailable. Please try again later.'
+
+split-in-progress:
+  code: '4005'
+  message: 'A stock split or reverse split is being applied. Please try again shortly.'
+
+search-query-invalid:
+  code: '4006'
+  message: 'The search term must be 1 to 30 characters.'
+
+search-rate-limited:
+  code: '4007'
+  message: 'Too many search requests. Please try again later.'
+
+search-failed:
+  code: '4008'
+  message: 'The ticker search failed. Please try again later.'
+
+settlement-in-progress:
+  code: '4009'
+  message: 'Weekly settlement is in progress. Please try again shortly.'
+
+insufficient-cash:
+  code: '4010'
+  message: 'Not enough cash. Required amount: ${0}'
+
+insufficient-holdings:
+  code: '4011'
+  message: 'Not enough shares. You hold {0}.'
+
+watchlist-full:
+  code: '4012'
+  message: 'You can add up to {0} stocks to your watchlist.'
+
+participant-not-found:
+  code: '4013'
+  message: 'This user has not joined the mock investment.'

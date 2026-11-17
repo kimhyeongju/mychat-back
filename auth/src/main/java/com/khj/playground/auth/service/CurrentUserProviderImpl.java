@@ -1,15 +1,16 @@
 package com.khj.playground.auth.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.auth.exception.AuthErrorCode;
+import com.khj.playground.common.exception.CommonErrorCode;
 import com.khj.playground.auth.entity.User;
 import com.khj.playground.auth.enums.Role;
 import com.khj.playground.auth.repository.UserRepository;
 import com.khj.playground.common.security.AuthenticatedUser;
 import com.khj.playground.common.security.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -20,19 +21,13 @@ public class CurrentUserProviderImpl implements CurrentUserProvider {
   @Override
   public AuthenticatedUser resolve(Authentication authentication) {
     if (authentication == null || !authentication.isAuthenticated()) {
-      throw new ResponseStatusException(
-        HttpStatus.UNAUTHORIZED,
-        "로그인이 필요합니다."
-      );
+      throw new ApiException(CommonErrorCode.UNAUTHORIZED);
     }
 
     User user = userRepository
       .findByUsername(authentication.getName())
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.UNAUTHORIZED,
-          "존재하지 않는 사용자입니다."
-        )
+        new ApiException(AuthErrorCode.USER_SESSION_INVALID)
       );
 
     return new AuthenticatedUser(

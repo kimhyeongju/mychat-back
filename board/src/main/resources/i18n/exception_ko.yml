@@ -1,0 +1,53 @@
+# 게시판 오류. 코드 대역 3xxx.
+
+attachment-empty:
+  code: '3001'
+  message: '빈 파일입니다.'
+
+attachment-limit:
+  code: '3002'
+  message: '첨부는 최대 {0}개까지 가능합니다.'
+
+post-not-found:
+  code: '3003'
+  message: '존재하지 않는 글입니다.'
+
+attachment-not-found:
+  code: '3004'
+  message: '존재하지 않는 첨부입니다.'
+
+board-not-found:
+  code: '3005'
+  message: '존재하지 않는 게시판입니다.'
+
+comment-not-found:
+  code: '3006'
+  message: '존재하지 않는 댓글입니다.'
+
+file-name-invalid:
+  code: '3007'
+  message: '잘못된 파일명입니다.'
+
+file-save-failed:
+  code: '3008'
+  message: '파일 저장에 실패했습니다.'
+
+file-not-found:
+  code: '3009'
+  message: '파일을 찾을 수 없습니다.'
+
+file-read-failed:
+  code: '3010'
+  message: '파일을 읽을 수 없습니다.'
+
+file-extension-missing:
+  code: '3011'
+  message: '확장자가 없는 파일은 업로드할 수 없습니다.'
+
+file-type-not-allowed:
+  code: '3012'
+  message: '허용되지 않는 파일 형식입니다: {0}'
+
+board-admin-only:
+  code: '3013'
+  message: '이 게시판에는 관리자만 글을 쓸 수 있습니다.'

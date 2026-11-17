@@ -1,14 +1,14 @@
 package com.khj.playground.auth.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.auth.exception.AuthErrorCode;
 import com.khj.playground.auth.dto.MeResponse;
 import com.khj.playground.auth.dto.UpdateProfileRequest;
 import com.khj.playground.auth.entity.User;
 import com.khj.playground.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -32,10 +32,7 @@ public class ProfileService {
       !request.nickname().equals(user.getNickname())
     ) {
       if (userRepository.existsByNickname(request.nickname())) {
-        throw new ResponseStatusException(
-          HttpStatus.CONFLICT,
-          "이미 사용 중인 닉네임입니다."
-        );
+        throw new ApiException(AuthErrorCode.NICKNAME_DUPLICATED);
       }
       user.changeNickname(request.nickname());
     }
@@ -51,10 +48,7 @@ public class ProfileService {
     return userRepository
       .findByUsername(username)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.UNAUTHORIZED,
-          "존재하지 않는 사용자입니다."
-        )
+        new ApiException(AuthErrorCode.USER_SESSION_INVALID)
       );
   }
 }

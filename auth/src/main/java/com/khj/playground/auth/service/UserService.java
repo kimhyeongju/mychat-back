@@ -1,13 +1,13 @@
 package com.khj.playground.auth.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.auth.exception.AuthErrorCode;
 import com.khj.playground.auth.dto.UserSummaryResponse;
 import com.khj.playground.auth.entity.User;
 import com.khj.playground.auth.repository.UserRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -27,10 +27,7 @@ public class UserService {
     User me = userRepository
       .findByUsername(myUsername)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.UNAUTHORIZED,
-          "존재하지 않는 사용자입니다."
-        )
+        new ApiException(AuthErrorCode.USER_SESSION_INVALID)
       );
 
     return userRepository

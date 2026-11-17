@@ -1,5 +1,7 @@
 package com.khj.playground.auth.sms;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.auth.exception.AuthErrorCode;
 import com.solapi.sdk.SolapiClient;
 import com.solapi.sdk.message.exception.SolapiMessageNotReceivedException;
 import com.solapi.sdk.message.model.Message;
@@ -7,7 +9,6 @@ import com.solapi.sdk.message.service.DefaultMessageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -60,9 +61,6 @@ public class SolapiSmsSender implements SmsSender {
 
   /** 실패 원인(잔액 부족, 발신번호 미등록 등)은 로그에만 남기고 사용자에게는 일반 메시지를 준다. */
   private ResponseStatusException toClientError() {
-    return new ResponseStatusException(
-      HttpStatus.SERVICE_UNAVAILABLE,
-      "인증번호 발송에 실패했습니다. 잠시 후 다시 시도해주세요."
-    );
+    return new ApiException(AuthErrorCode.SMS_SEND_FAILED);
   }
 }

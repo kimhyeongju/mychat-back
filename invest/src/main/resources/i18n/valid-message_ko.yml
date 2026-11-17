@@ -1,0 +1,8 @@
+invest-dto:
+  symbol:
+    not-blank: '종목 코드를 입력해주세요.'
+  side:
+    not-null: '매수/매도를 선택해주세요.'
+  quantity:
+    min: '수량은 {value}주 이상이어야 합니다.'
+    max: '한 번에 {value}주까지 주문할 수 있습니다.'

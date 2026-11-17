@@ -1,0 +1,6 @@
+chat-dto:
+  message-content:
+    not-blank: 'Please enter a message.'
+    size: 'The message must be at most {max} characters.'
+  target-user-id:
+    not-null: 'Please choose who to chat with.'

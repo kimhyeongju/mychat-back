@@ -1,0 +1,80 @@
+# Auth / user errors. Code range 1xxx.
+phone-verification-required:
+  code: '1001'
+  message: 'Please complete phone verification first.'
+
+username-duplicated:
+  code: '1002'
+  message: 'This username is already in use.'
+
+nickname-duplicated:
+  code: '1003'
+  message: 'This nickname is already in use.'
+
+phone-duplicated:
+  code: '1004'
+  message: 'This phone number is already registered.'
+
+login-failed:
+  code: '1005'
+  message: 'The username or password is incorrect.'
+
+token-invalid:
+  code: '1006'
+  message: 'The token is expired or invalid.'
+
+token-revoked:
+  code: '1007'
+  message: 'The token is expired or has already been revoked.'
+
+user-session-invalid:
+  code: '1008'
+  message: 'This user does not exist. Please log in again.'
+
+user-not-found:
+  code: '1009'
+  message: 'User not found.'
+
+account-not-found-by-phone:
+  code: '1010'
+  message: 'No account is registered with this number.'
+
+username-not-found:
+  code: '1011'
+  message: 'This username does not exist.'
+
+find-account-mismatch:
+  code: '1012'
+  message: 'The username and phone number do not match.'
+
+password-incorrect:
+  code: '1013'
+  message: 'The password is incorrect.'
+
+sms-rate-limit-minute:
+  code: '1014'
+  message: 'Please try again in a minute.'
+
+sms-rate-limit-daily:
+  code: '1015'
+  message: 'You have exceeded the daily limit for verification requests. Please try again tomorrow.'
+
+sms-send-failed:
+  code: '1016'
+  message: 'Failed to send the verification code. Please try again later.'
+
+verification-code-invalid:
+  code: '1017'
+  message: 'The verification code is incorrect or has expired.'
+
+admin-cannot-modify:
+  code: '1018'
+  message: 'Administrator accounts cannot be modified on this screen.'
+
+admin-cannot-delete:
+  code: '1019'
+  message: 'Administrator accounts cannot be deleted.'
+
+phone-generation-failed:
+  code: '1020'
+  message: 'Could not generate a temporary phone number. Please try again.'

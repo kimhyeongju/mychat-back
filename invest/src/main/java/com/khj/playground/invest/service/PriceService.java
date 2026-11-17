@@ -1,5 +1,7 @@
 package com.khj.playground.invest.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.invest.exception.InvestErrorCode;
 import com.khj.playground.invest.market.MarketClock;
 import com.khj.playground.invest.market.MarketDataClient;
 import com.khj.playground.invest.market.MarketDataException;
@@ -15,7 +17,6 @@ import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -128,10 +129,7 @@ public class PriceService {
     QuoteView view = getQuote(symbol);
     Duration age = Duration.between(view.quote().fetchedAt(), Instant.now());
     if (age.compareTo(Duration.ofHours(1)) > 0) {
-      throw new ResponseStatusException(
-        HttpStatus.SERVICE_UNAVAILABLE,
-        "최신 시세를 가져올 수 없어 주문을 처리하지 못했습니다. 잠시 후 다시 시도해주세요."
-      );
+      throw new ApiException(InvestErrorCode.QUOTE_STALE_FOR_TRADE);
     }
     return view.quote();
   }
@@ -243,24 +241,15 @@ public class PriceService {
   }
 
   private ResponseStatusException badSymbol() {
-    return new ResponseStatusException(
-      HttpStatus.BAD_REQUEST,
-      "종목 코드 형식이 올바르지 않습니다."
-    );
+    return new ApiException(InvestErrorCode.SYMBOL_INVALID);
   }
 
   private ResponseStatusException notFound() {
-    return new ResponseStatusException(
-      HttpStatus.NOT_FOUND,
-      "존재하지 않는 종목입니다."
-    );
+    return new ApiException(InvestErrorCode.SYMBOL_NOT_FOUND);
   }
 
   private ResponseStatusException unavailable() {
-    return new ResponseStatusException(
-      HttpStatus.SERVICE_UNAVAILABLE,
-      "시세를 가져올 수 없습니다. 잠시 후 다시 시도해주세요."
-    );
+    return new ApiException(InvestErrorCode.QUOTE_UNAVAILABLE);
   }
 
   /** @param stale 최신 조회에 실패해 이전 값을 돌려준 경우 true */

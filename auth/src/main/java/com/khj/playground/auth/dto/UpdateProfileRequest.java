@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Size;
  */
 public record UpdateProfileRequest(
   // SignUpRequest의 닉네임 제약과 동일하게 유지한다.
-  @Size(min = 2, max = 12) String nickname,
+  @Size(min = 2, max = 12, message = "{user-dto.nickname.size}") String nickname,
 
-  @Email String email
+  @Email(message = "{user-dto.email.email}") String email
 ) {}

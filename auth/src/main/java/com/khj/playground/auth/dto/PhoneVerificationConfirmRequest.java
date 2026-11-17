@@ -4,9 +4,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
 public record PhoneVerificationConfirmRequest(
-  @NotBlank @Pattern(regexp = "^01[0-9]{8,9}$") String phoneNumber,
+  @NotBlank(message = "{user-dto.phone-number.not-blank}")
+  @Pattern(regexp = "^01[0-9]{8,9}$", message = "{user-dto.phone-number.pattern}")
+  String phoneNumber,
 
-  @NotBlank
-  @Pattern(regexp = "^[0-9]{6}$", message = "인증번호는 6자리 숫자입니다.")
+  @NotBlank(message = "{user-dto.verification-code.not-blank}")
+  @Pattern(regexp = "^[0-9]{6}$", message = "{user-dto.verification-code.pattern}")
   String code
 ) {}

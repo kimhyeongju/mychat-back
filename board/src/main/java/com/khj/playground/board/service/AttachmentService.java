@@ -1,5 +1,8 @@
 package com.khj.playground.board.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.board.exception.BoardErrorCode;
+import com.khj.playground.common.exception.CommonErrorCode;
 import com.khj.playground.board.dto.AttachmentResponse;
 import com.khj.playground.board.entity.Attachment;
 import com.khj.playground.board.entity.Post;
@@ -11,12 +14,10 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -45,10 +46,7 @@ public class AttachmentService {
     Authentication authentication
   ) {
     if (file == null || file.isEmpty()) {
-      throw new ResponseStatusException(
-        HttpStatus.BAD_REQUEST,
-        "빈 파일입니다."
-      );
+      throw new ApiException(BoardErrorCode.ATTACHMENT_EMPTY);
     }
 
     Post post = requirePost(postId);
@@ -58,10 +56,7 @@ public class AttachmentService {
       attachmentRepository.findByPostIdOrderByCreatedAtAsc(postId).size() >=
       MAX_COUNT_PER_POST
     ) {
-      throw new ResponseStatusException(
-        HttpStatus.BAD_REQUEST,
-        "첨부는 최대 " + MAX_COUNT_PER_POST + "개까지 가능합니다."
-      );
+      throw new ApiException(BoardErrorCode.ATTACHMENT_LIMIT, String.valueOf(MAX_COUNT_PER_POST));
     }
 
     String storedName = fileStorage.store(file);
@@ -105,10 +100,7 @@ public class AttachmentService {
     return postRepository
       .findById(postId)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.NOT_FOUND,
-          "존재하지 않는 글입니다."
-        )
+        new ApiException(BoardErrorCode.POST_NOT_FOUND)
       );
   }
 
@@ -116,20 +108,14 @@ public class AttachmentService {
     return attachmentRepository
       .findById(attachmentId)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.NOT_FOUND,
-          "존재하지 않는 첨부입니다."
-        )
+        new ApiException(BoardErrorCode.ATTACHMENT_NOT_FOUND)
       );
   }
 
   private void requireEditable(Post post, Authentication authentication) {
     AuthenticatedUser user = currentUserProvider.resolve(authentication);
     if (!post.isAuthor(user.id()) && !user.admin()) {
-      throw new ResponseStatusException(
-        HttpStatus.FORBIDDEN,
-        "권한이 없습니다."
-      );
+      throw new ApiException(CommonErrorCode.FORBIDDEN);
     }
   }
 

@@ -1,5 +1,7 @@
 package com.khj.playground.chat.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.chat.exception.ChatErrorCode;
 import com.khj.playground.chat.dto.ChatRoomResponse;
 import com.khj.playground.chat.entity.ChatRoom;
 import com.khj.playground.chat.enums.RoomType;
@@ -7,9 +9,7 @@ import com.khj.playground.chat.repository.ChatRoomRepository;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -29,10 +29,7 @@ public class ChatRoomService {
   public ChatRoomResponse getOpenRoom(UUID roomId) {
     ChatRoom room = findRoom(roomId);
     if (!room.isOpen()) {
-      throw new ResponseStatusException(
-        HttpStatus.FORBIDDEN,
-        "접근할 수 없는 방입니다."
-      );
+      throw new ApiException(ChatErrorCode.ROOM_FORBIDDEN);
     }
     return ChatRoomResponse.from(room);
   }
@@ -41,10 +38,7 @@ public class ChatRoomService {
     return chatRoomRepository
       .findById(roomId)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.NOT_FOUND,
-          "존재하지 않는 방입니다."
-        )
+        new ApiException(ChatErrorCode.ROOM_NOT_FOUND)
       );
   }
 }

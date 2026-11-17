@@ -1,13 +1,13 @@
 package com.khj.playground.board.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.board.exception.BoardErrorCode;
 import com.khj.playground.board.dto.BoardResponse;
 import com.khj.playground.board.entity.Board;
 import com.khj.playground.board.repository.BoardRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -32,10 +32,7 @@ public class BoardService {
     return boardRepository
       .findBySlug(slug)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.NOT_FOUND,
-          "존재하지 않는 게시판입니다."
-        )
+        new ApiException(BoardErrorCode.BOARD_NOT_FOUND)
       );
   }
 }

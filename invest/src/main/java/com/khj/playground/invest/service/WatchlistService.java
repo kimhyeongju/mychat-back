@@ -1,5 +1,7 @@
 package com.khj.playground.invest.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.invest.exception.InvestErrorCode;
 import com.khj.playground.invest.dto.WatchlistItemResponse;
 import com.khj.playground.invest.entity.WatchlistItem;
 import com.khj.playground.invest.market.Quote;
@@ -10,10 +12,8 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 /** 관심 종목. 추가·삭제는 여러 번 해도 결과가 같다(멱등). */
 @Service
@@ -63,10 +63,7 @@ public class WatchlistService {
       return;
     }
     if (watchlistRepository.countByUserId(userId) >= MAX_ITEMS) {
-      throw new ResponseStatusException(
-        HttpStatus.BAD_REQUEST,
-        "관심 종목은 최대 " + MAX_ITEMS + "개까지 담을 수 있습니다."
-      );
+      throw new ApiException(InvestErrorCode.WATCHLIST_FULL, String.valueOf(MAX_ITEMS));
     }
     // 존재하는 종목인지 확인한다. 없는 심볼이면 404 가 나가고 저장하지 않는다.
     priceService.getQuote(symbol);

@@ -1,0 +1,10 @@
+board-dto:
+  post-title:
+    not-blank: '제목을 입력해주세요.'
+    size: '제목은 {max}자 이하여야 합니다.'
+  post-content:
+    not-blank: '내용을 입력해주세요.'
+    size: '내용은 {max}자 이하여야 합니다.'
+  comment-content:
+    not-blank: '댓글 내용을 입력해주세요.'
+    size: '댓글은 {max}자 이하여야 합니다.'

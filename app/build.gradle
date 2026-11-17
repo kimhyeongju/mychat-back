@@ -1,14 +1,3 @@
-// app/build.gradle
-//
-// 유일한 실행 모듈. bootJar를 만드는 것도, application.yml을 갖는 것도 여기뿐이다.
-//
-// [중요] 이 파일은 전환 과정에서 계속 줄어든다.
-//   Step 1  : 소스가 전부 app에 있으므로 기존 build.gradle의 의존성을 그대로 갖고 있어야 한다.
-//   Step 2~4: 코드가 common/auth/chat으로 빠져나갈 때마다 해당 의존성도 같이 지운다.
-//   최종     : project(':...') 참조 + 부트스트랩 의존성만 남는다.
-//
-// 아래 [S2] [S3] [S4] 표시는 "그 Step이 끝나면 이 줄을 지운다"는 뜻이다.
-
 plugins {
     // 루트에서 버전을 선언해뒀으므로 여기서는 id만 적는다.
     id 'org.springframework.boot'

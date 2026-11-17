@@ -1,13 +1,13 @@
 package com.khj.playground.auth.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.auth.exception.AuthErrorCode;
 import com.khj.playground.auth.sms.SmsSender;
 import java.security.SecureRandom;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 /**
  * 인증번호는 DB가 아닌 Redis에 TTL과 함께 저장한다 (휘발성 데이터이므로 자동 만료가 필요).
@@ -101,10 +101,7 @@ public class PhoneVerificationService {
       .setIfAbsent(key, "1", Duration.ofMinutes(1));
 
     if (!Boolean.TRUE.equals(allowed)) {
-      throw new ResponseStatusException(
-        HttpStatus.TOO_MANY_REQUESTS,
-        "1분 후에 다시 시도해주세요."
-      );
+      throw new ApiException(AuthErrorCode.SMS_RATE_LIMIT_MINUTE);
     }
   }
 
@@ -122,10 +119,7 @@ public class PhoneVerificationService {
     }
 
     if (count != null && count > DAILY_LIMIT) {
-      throw new ResponseStatusException(
-        HttpStatus.TOO_MANY_REQUESTS,
-        "하루 인증 요청 횟수를 초과했습니다. 내일 다시 시도해주세요."
-      );
+      throw new ApiException(AuthErrorCode.SMS_RATE_LIMIT_DAILY);
     }
   }
 }

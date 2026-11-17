@@ -1,5 +1,7 @@
 package com.khj.playground.chat.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.chat.exception.ChatErrorCode;
 import com.khj.playground.chat.entity.AnonymousSession;
 import com.khj.playground.chat.enums.SenderType;
 import com.khj.playground.chat.repository.AnonymousSessionRepository;
@@ -7,7 +9,6 @@ import com.khj.playground.common.security.AuthenticatedUser;
 import com.khj.playground.common.security.CurrentUserProvider;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,19 +47,13 @@ public class ChatSenderResolver {
     }
 
     if (anonymousId == null) {
-      throw new ResponseStatusException(
-        HttpStatus.UNAUTHORIZED,
-        "익명 세션이 필요합니다."
-      );
+      throw new ApiException(ChatErrorCode.ANONYMOUS_SESSION_REQUIRED);
     }
 
     AnonymousSession session = anonymousSessionRepository
       .findById(anonymousId)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.UNAUTHORIZED,
-          "유효하지 않은 익명 세션입니다."
-        )
+        new ApiException(ChatErrorCode.ANONYMOUS_SESSION_INVALID)
       );
 
     return new Sender(

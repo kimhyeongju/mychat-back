@@ -1,5 +1,7 @@
 package com.khj.playground.auth.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.auth.exception.AuthErrorCode;
 import com.khj.playground.auth.dto.AvailabilityResponse;
 import com.khj.playground.auth.dto.FindIdRequest;
 import com.khj.playground.auth.dto.FindIdResponse;
@@ -14,11 +16,9 @@ import com.khj.playground.auth.repository.UserRepository;
 import com.khj.playground.common.event.UserWithdrawnEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -34,28 +34,16 @@ public class AuthService {
   @Transactional
   public SignUpResponse signUp(SignUpRequest request) {
     if (!phoneVerificationService.isVerified(request.phoneNumber())) {
-      throw new ResponseStatusException(
-        HttpStatus.BAD_REQUEST,
-        "휴대폰 인증을 먼저 완료해주세요."
-      );
+      throw new ApiException(AuthErrorCode.PHONE_VERIFICATION_REQUIRED);
     }
     if (userRepository.existsByUsername(request.username())) {
-      throw new ResponseStatusException(
-        HttpStatus.CONFLICT,
-        "이미 사용 중인 아이디입니다."
-      );
+      throw new ApiException(AuthErrorCode.USERNAME_DUPLICATED);
     }
     if (userRepository.existsByNickname(request.nickname())) {
-      throw new ResponseStatusException(
-        HttpStatus.CONFLICT,
-        "이미 사용 중인 닉네임입니다."
-      );
+      throw new ApiException(AuthErrorCode.NICKNAME_DUPLICATED);
     }
     if (userRepository.existsByPhoneNumber(request.phoneNumber())) {
-      throw new ResponseStatusException(
-        HttpStatus.CONFLICT,
-        "이미 가입된 휴대폰 번호입니다."
-      );
+      throw new ApiException(AuthErrorCode.PHONE_DUPLICATED);
     }
 
     User user = User
@@ -79,17 +67,11 @@ public class AuthService {
     User user = userRepository
       .findByUsername(request.username())
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.UNAUTHORIZED,
-          "아이디 또는 비밀번호가 올바르지 않습니다."
-        )
+        new ApiException(AuthErrorCode.LOGIN_FAILED)
       );
 
     if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-      throw new ResponseStatusException(
-        HttpStatus.UNAUTHORIZED,
-        "아이디 또는 비밀번호가 올바르지 않습니다."
-      );
+      throw new ApiException(AuthErrorCode.LOGIN_FAILED);
     }
 
     return issueTokens(user);
@@ -97,28 +79,19 @@ public class AuthService {
 
   public TokenResponse reissue(String refreshToken) {
     if (!jwtTokenProvider.validateToken(refreshToken)) {
-      throw new ResponseStatusException(
-        HttpStatus.UNAUTHORIZED,
-        "만료되었거나 유효하지 않은 토큰입니다."
-      );
+      throw new ApiException(AuthErrorCode.TOKEN_INVALID);
     }
 
     String username = jwtTokenProvider.getUsername(refreshToken);
 
     if (!refreshTokenService.isValid(username, refreshToken)) {
-      throw new ResponseStatusException(
-        HttpStatus.UNAUTHORIZED,
-        "만료되었거나 이미 폐기된 토큰입니다."
-      );
+      throw new ApiException(AuthErrorCode.TOKEN_REVOKED);
     }
 
     User user = userRepository
       .findByUsername(username)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.UNAUTHORIZED,
-          "존재하지 않는 사용자입니다."
-        )
+        new ApiException(AuthErrorCode.USER_SESSION_INVALID)
       );
 
     return issueTokens(user);
@@ -138,19 +111,13 @@ public class AuthService {
 
   public FindIdResponse findId(FindIdRequest request) {
     if (!phoneVerificationService.isVerified(request.phoneNumber())) {
-      throw new ResponseStatusException(
-        HttpStatus.BAD_REQUEST,
-        "휴대폰 인증을 먼저 완료해주세요."
-      );
+      throw new ApiException(AuthErrorCode.PHONE_VERIFICATION_REQUIRED);
     }
 
     User user = userRepository
       .findByPhoneNumber(request.phoneNumber())
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.NOT_FOUND,
-          "해당 번호로 가입된 계정이 없습니다."
-        )
+        new ApiException(AuthErrorCode.ACCOUNT_NOT_FOUND_BY_PHONE)
       );
 
     phoneVerificationService.clearVerified(request.phoneNumber());
@@ -161,26 +128,17 @@ public class AuthService {
   @Transactional
   public void resetPassword(ResetPasswordRequest request) {
     if (!phoneVerificationService.isVerified(request.phoneNumber())) {
-      throw new ResponseStatusException(
-        HttpStatus.BAD_REQUEST,
-        "휴대폰 인증을 먼저 완료해주세요."
-      );
+      throw new ApiException(AuthErrorCode.PHONE_VERIFICATION_REQUIRED);
     }
 
     User user = userRepository
       .findByUsername(request.username())
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.NOT_FOUND,
-          "존재하지 않는 아이디입니다."
-        )
+        new ApiException(AuthErrorCode.USERNAME_NOT_FOUND)
       );
 
     if (!user.getPhoneNumber().equals(request.phoneNumber())) {
-      throw new ResponseStatusException(
-        HttpStatus.BAD_REQUEST,
-        "아이디와 휴대폰 번호가 일치하지 않습니다."
-      );
+      throw new ApiException(AuthErrorCode.FIND_ACCOUNT_MISMATCH);
     }
 
     user.changePassword(passwordEncoder.encode(request.newPassword()));
@@ -195,17 +153,11 @@ public class AuthService {
     User user = userRepository
       .findByUsername(username)
       .orElseThrow(() ->
-        new ResponseStatusException(
-          HttpStatus.UNAUTHORIZED,
-          "존재하지 않는 사용자입니다."
-        )
+        new ApiException(AuthErrorCode.USER_SESSION_INVALID)
       );
 
     if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
-      throw new ResponseStatusException(
-        HttpStatus.BAD_REQUEST,
-        "비밀번호가 올바르지 않습니다."
-      );
+      throw new ApiException(AuthErrorCode.PASSWORD_INCORRECT);
     }
 
     // TODO: 탈퇴 시 ChatRoomMember/ChatMessage는 삭제하지 않고 "익명화" 처리할 예정.

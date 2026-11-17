@@ -1,0 +1,53 @@
+# 모의투자 오류. 코드 대역 4xxx.
+
+quote-stale-for-trade:
+  code: '4001'
+  message: '최신 시세를 가져올 수 없어 주문을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.'
+
+symbol-invalid:
+  code: '4002'
+  message: '종목 코드 형식이 올바르지 않습니다.'
+
+symbol-not-found:
+  code: '4003'
+  message: '존재하지 않는 종목입니다.'
+
+quote-unavailable:
+  code: '4004'
+  message: '시세를 가져올 수 없습니다. 잠시 후 다시 시도해주세요.'
+
+split-in-progress:
+  code: '4005'
+  message: '주식 분할/병합을 반영하는 중입니다. 잠시 후 다시 시도해주세요.'
+
+search-query-invalid:
+  code: '4006'
+  message: '검색어는 1~30자여야 합니다.'
+
+search-rate-limited:
+  code: '4007'
+  message: '검색 요청이 많습니다. 잠시 후 다시 시도해주세요.'
+
+search-failed:
+  code: '4008'
+  message: '종목 검색에 실패했습니다. 잠시 후 다시 시도해주세요.'
+
+settlement-in-progress:
+  code: '4009'
+  message: '주간 정산 중입니다. 잠시 후 다시 시도해주세요.'
+
+insufficient-cash:
+  code: '4010'
+  message: '현금이 부족합니다. 필요 금액 ${0}'
+
+insufficient-holdings:
+  code: '4011'
+  message: '보유 수량이 부족합니다. 보유 {0}주'
+
+watchlist-full:
+  code: '4012'
+  message: '관심 종목은 최대 {0}개까지 담을 수 있습니다.'
+
+participant-not-found:
+  code: '4013'
+  message: '모의투자에 참여하지 않은 사용자입니다.'

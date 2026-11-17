@@ -1,5 +1,8 @@
 package com.khj.playground.auth.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.common.exception.ErrorCode;
+import com.khj.playground.auth.exception.AuthErrorCode;
 import com.khj.playground.auth.dto.AdminCreateUserRequest;
 import com.khj.playground.auth.dto.AdminUpdateUserRequest;
 import com.khj.playground.auth.dto.AdminUserResponse;
@@ -15,11 +18,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 /**
  * 운영자 전용 회원 관리. 컨트롤러가 ADMIN 권한을 확인한 뒤에만 호출된다.
@@ -60,17 +61,17 @@ public class AdminUserService {
   @Transactional
   public AdminUserResponse create(AdminCreateUserRequest request, String adminUsername) {
     if (userRepository.existsByUsername(request.username())) {
-      throw conflict("이미 사용 중인 아이디입니다.");
+      throw conflict(AuthErrorCode.USERNAME_DUPLICATED);
     }
     if (userRepository.existsByNickname(request.nickname())) {
-      throw conflict("이미 사용 중인 닉네임입니다.");
+      throw conflict(AuthErrorCode.NICKNAME_DUPLICATED);
     }
 
     String phone = request.phoneNumber();
     if (phone == null || phone.isBlank()) {
       phone = generatePlaceholderPhone();
     } else if (userRepository.existsByPhoneNumber(phone)) {
-      throw conflict("이미 사용 중인 전화번호입니다.");
+      throw conflict(AuthErrorCode.PHONE_DUPLICATED);
     }
 
     User user = userRepository.save(
@@ -95,17 +96,17 @@ public class AdminUserService {
     String adminUsername
   ) {
     User user = find(id);
-    requireNotAdmin(user, "운영자 계정은 이 화면에서 수정할 수 없습니다.");
+    requireNotAdmin(user, AuthErrorCode.ADMIN_CANNOT_MODIFY);
 
     if (request.nickname() != null && !request.nickname().equals(user.getNickname())) {
       if (userRepository.existsByNickname(request.nickname())) {
-        throw conflict("이미 사용 중인 닉네임입니다.");
+        throw conflict(AuthErrorCode.NICKNAME_DUPLICATED);
       }
       user.changeNickname(request.nickname());
     }
     if (request.phoneNumber() != null && !request.phoneNumber().equals(user.getPhoneNumber())) {
       if (userRepository.existsByPhoneNumber(request.phoneNumber())) {
-        throw conflict("이미 사용 중인 전화번호입니다.");
+        throw conflict(AuthErrorCode.PHONE_DUPLICATED);
       }
       user.changePhoneNumber(request.phoneNumber());
     }
@@ -124,7 +125,7 @@ public class AdminUserService {
   @Transactional
   public void delete(UUID id, String adminUsername) {
     User user = find(id);
-    requireNotAdmin(user, "운영자 계정은 삭제할 수 없습니다.");
+    requireNotAdmin(user, AuthErrorCode.ADMIN_CANNOT_DELETE);
 
     // 회원 탈퇴와 같다. 모의투자 계좌·거래·관심 종목·주간 성적이 함께 지워진다.
     eventPublisher.publishEvent(new UserWithdrawnEvent(user.getId()));
@@ -137,13 +138,13 @@ public class AdminUserService {
     return userRepository
       .findById(id)
       .orElseThrow(() ->
-        new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")
+        new ApiException(AuthErrorCode.USER_NOT_FOUND)
       );
   }
 
-  private static void requireNotAdmin(User user, String message) {
+  private static void requireNotAdmin(User user, ErrorCode code) {
     if (user.getRole() == Role.ADMIN) {
-      throw new ResponseStatusException(HttpStatus.FORBIDDEN, message);
+      throw new ApiException(code);
     }
   }
 
@@ -158,17 +159,14 @@ public class AdminUserService {
         return candidate;
       }
     }
-    throw new ResponseStatusException(
-      HttpStatus.INTERNAL_SERVER_ERROR,
-      "임시 전화번호를 만들지 못했습니다. 다시 시도해주세요."
-    );
+    throw new ApiException(AuthErrorCode.PHONE_GENERATION_FAILED);
   }
 
   private static String blankToNull(String value) {
     return value == null || value.isBlank() ? null : value.trim();
   }
 
-  private static ResponseStatusException conflict(String message) {
-    return new ResponseStatusException(HttpStatus.CONFLICT, message);
+  private static ApiException conflict(ErrorCode code) {
+    return new ApiException(code);
   }
 }

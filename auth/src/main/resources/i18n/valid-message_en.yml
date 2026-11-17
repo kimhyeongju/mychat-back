@@ -1,0 +1,24 @@
+# Validation messages. DTOs reference them as message = "{key}". {min} and {max} are filled in by the validator.
+user-dto:
+  username:
+    not-blank: 'Please enter a username.'
+    size: 'The username must be {min} to {max} characters long.'
+    pattern: 'The username may only contain letters, digits and underscores.'
+  password:
+    not-blank: 'Please enter a password.'
+    size: 'The password must be {min} to {max} characters long.'
+    pattern: 'The password must be 8 to 64 characters and include letters, digits and special characters.'
+  nickname:
+    not-blank: 'Please enter a nickname.'
+    size: 'The nickname must be {min} to {max} characters long.'
+  phone-number:
+    not-blank: 'Please enter a phone number.'
+    pattern: 'The phone number format is not valid. (digits only, no hyphens)'
+    admin-pattern: 'The phone number must be 8 to 20 digits.'
+  email:
+    email: 'The email format is not valid.'
+  verification-code:
+    not-blank: 'Please enter the verification code.'
+    pattern: 'The verification code is 6 digits.'
+  refresh-token:
+    not-blank: 'A refresh token is required.'

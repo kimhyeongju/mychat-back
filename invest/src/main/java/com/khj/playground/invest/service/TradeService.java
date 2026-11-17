@@ -1,5 +1,7 @@
 package com.khj.playground.invest.service;
 
+import com.khj.playground.common.exception.ApiException;
+import com.khj.playground.invest.exception.InvestErrorCode;
 import com.khj.playground.common.dto.PageResponse;
 import com.khj.playground.invest.dto.TradeRequest;
 import com.khj.playground.invest.dto.TradeResponse;
@@ -16,10 +18,8 @@ import java.math.RoundingMode;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 /**
  * 시장가 주문. 캐시된 최신 시세로 즉시 체결한다.
@@ -40,10 +40,7 @@ public class TradeService {
   @Transactional
   public TradeResultResponse execute(UUID userId, TradeRequest request) {
     if (weeklyPeriod.isSettling()) {
-      throw new ResponseStatusException(
-        HttpStatus.SERVICE_UNAVAILABLE,
-        "주간 정산 중입니다. 잠시 후 다시 시도해주세요."
-      );
+      throw new ApiException(InvestErrorCode.SETTLEMENT_IN_PROGRESS);
     }
     String symbol = priceService.normalize(request.symbol());
 
@@ -63,10 +60,7 @@ public class TradeService {
 
     if (request.side() == TradeSide.BUY) {
       if (account.getCash().compareTo(amount) < 0) {
-        throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST,
-          "현금이 부족합니다. 필요 금액 $" + amount.toPlainString()
-        );
+        throw new ApiException(InvestErrorCode.INSUFFICIENT_CASH, amount.toPlainString());
       }
       account.withdrawCash(amount);
       if (holding == null) {
@@ -76,10 +70,7 @@ public class TradeService {
     } else {
       if (holding == null || holding.getQuantity() < request.quantity()) {
         long owned = holding == null ? 0 : holding.getQuantity();
-        throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST,
-          "보유 수량이 부족합니다. 보유 " + owned + "주"
-        );
+        throw new ApiException(InvestErrorCode.INSUFFICIENT_HOLDINGS, String.valueOf(owned));
       }
       holding.sell(request.quantity());
       account.depositCash(amount);
