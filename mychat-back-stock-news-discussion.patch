@@ -1,0 +1,1483 @@
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/README.md /home/claude/kimhyeongju/mychat-back/README.md
+--- mychat-back/README.md	2026-11-18 00:13:40.723018406 +0900
++++ mychat-back/README.md	2026-11-18 00:13:40.458516515 +0900
+@@ -275,6 +275,24 @@
+ - `GET /api/invest/watchlist`, `PUT|DELETE /api/invest/watchlist/{symbol}`(로그인 필요, 추가·삭제는 여러 번 호출해도 결과가 같음).
+ - 관심 종목은 보유 종목과 함께 `HeldSymbolRefresher`가 주기적으로 갱신해서 목록의 시세가 오래되지 않습니다.
+ 
++### 종목 뉴스와 토론
++
++- **뉴스**: Alpaca News API(Benzinga)에서 종목별 최신 15건의 제목·요약·원문 링크만 가져옵니다(본문은 받지 않음). 같은 종목은 `invest.news.cache-seconds`(기본 300초) 동안 캐시하고, 제공자가 실패하면 오래된 캐시를 대신 돌려줍니다. 캐시도 없으면 4014 오류입니다. `fake` 제공자는 뉴스를 주지 않습니다. 공시(SEC filings)는 Alpaca 가 제공하지 않아 아직 없습니다.
++- **토론**: 글(최대 1000자)·댓글(최대 500자)·좋아요. 조회는 누구나, 쓰기는 로그인한 사용자만 합니다. 글 수정은 작성자만, 삭제는 작성자나 운영자가 합니다. 도배 방지로 사용자당 1분에 글 3개, 댓글 10개까지입니다(Redis 카운터).
++- 좋아요/댓글 수는 `invest_stock_posts` 에 들고 있지만 변경할 때마다 실제 행 수로 다시 계산해 맞춥니다. 탈퇴하면 그 회원의 글·댓글·좋아요를 모두 지웁니다(글에 달린 다른 사람의 댓글도 함께 사라짐).
++
++| 메서드 | 경로                           | 인증 | 설명                         |
++| ------ | ------------------------------ | ---- | ---------------------------- |
++| GET    | `/symbols/{symbol}/news`       | —    | 종목 뉴스                    |
++| GET    | `/symbols/{symbol}/posts`      | —    | 토론 글 `?sort=latest\|popular&page=&size=` (로그인 시 liked/mine 포함) |
++| POST   | `/symbols/{symbol}/posts`      | 필요 | 글쓰기 `{content}`           |
++| PATCH  | `/posts/{id}`                  | 필요 | 글 수정 (작성자)             |
++| DELETE | `/posts/{id}`                  | 필요 | 글 삭제 (작성자·운영자)      |
++| PUT·DELETE | `/posts/{id}/like`         | 필요 | 좋아요 / 취소 (멱등)         |
++| GET    | `/posts/{id}/comments`         | —    | 댓글 목록                    |
++| POST   | `/posts/{id}/comments`         | 필요 | 댓글쓰기 `{content}`         |
++| DELETE | `/comments/{id}`               | 필요 | 댓글 삭제 (작성자·운영자)    |
++
+ ### 거래 규칙
+ 
+ - 시장가 매수·매도만 있으며 24시간 가능합니다. 장 마감 중에는 마지막 체결가로 체결됩니다.
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/app/src/main/resources/application.yml /home/claude/kimhyeongju/mychat-back/app/src/main/resources/application.yml
+--- mychat-back/app/src/main/resources/application.yml	2026-11-18 00:13:40.722877858 +0900
++++ mychat-back/app/src/main/resources/application.yml	2026-11-18 00:10:48.510094179 +0900
+@@ -43,6 +43,9 @@
+   splits:
+     enabled: ${INVEST_SPLITS_ENABLED:true}
+     sync-interval-ms: 3600000
++  # 종목 뉴스(Alpaca News API). 같은 종목은 이 시간(초) 동안 캐시해 호출 한도를 아낀다.
++  news:
++    cache-seconds: 300
+   market-data:
+     # alpaca | finnhub | fake. 키가 없는 환경에서는 fake 로 두면 서버가 가상 시세를 만든다.
+     provider: ${INVEST_MARKET_DATA_PROVIDER:fake}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/config/InvestPublicEndpoints.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/config/InvestPublicEndpoints.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/config/InvestPublicEndpoints.java	2026-11-18 00:13:40.737087715 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/config/InvestPublicEndpoints.java	2026-11-18 00:10:22.823208205 +0900
+@@ -6,7 +6,7 @@
+ import org.springframework.stereotype.Component;
+ 
+ /**
+- * 시세·검색·랭킹·환율·주차 정보·리더보드·프로필은 비로그인도 볼 수 있다.
++ * 시세·검색·랭킹·환율·주차 정보·리더보드·프로필·종목 뉴스·토론 글/댓글 조회는 비로그인도 볼 수 있다.
+  * 계좌·포트폴리오·거래는 등록하지 않으므로 자동으로 인증이 필요해진다.
+  */
+ @Component
+@@ -17,6 +17,9 @@
+     return List.of(
+       PublicEndpoint.get("/api/invest/symbols/search"),
+       PublicEndpoint.get("/api/invest/symbols/*"),
++      PublicEndpoint.get("/api/invest/symbols/*/news"),
++      PublicEndpoint.get("/api/invest/symbols/*/posts"),
++      PublicEndpoint.get("/api/invest/posts/*/comments"),
+       PublicEndpoint.get("/api/invest/ranking"),
+       PublicEndpoint.get("/api/invest/fx"),
+       PublicEndpoint.get("/api/invest/week"),
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/controller/StockDiscussionController.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/controller/StockDiscussionController.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/controller/StockDiscussionController.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/controller/StockDiscussionController.java	2026-11-18 00:11:39.795676544 +0900
+@@ -0,0 +1,141 @@
++package com.khj.playground.invest.controller;
++
++import com.khj.playground.common.dto.PageResponse;
++import com.khj.playground.common.security.AuthenticatedUser;
++import com.khj.playground.common.security.CurrentUserProvider;
++import com.khj.playground.invest.dto.LikeResponse;
++import com.khj.playground.invest.dto.StockCommentRequest;
++import com.khj.playground.invest.dto.StockCommentResponse;
++import com.khj.playground.invest.dto.StockPostRequest;
++import com.khj.playground.invest.dto.StockPostResponse;
++import com.khj.playground.invest.service.StockDiscussionService;
++import jakarta.validation.Valid;
++import java.util.List;
++import lombok.RequiredArgsConstructor;
++import org.springframework.http.HttpStatus;
++import org.springframework.security.core.Authentication;
++import org.springframework.web.bind.annotation.DeleteMapping;
++import org.springframework.web.bind.annotation.GetMapping;
++import org.springframework.web.bind.annotation.PatchMapping;
++import org.springframework.web.bind.annotation.PathVariable;
++import org.springframework.web.bind.annotation.PostMapping;
++import org.springframework.web.bind.annotation.PutMapping;
++import org.springframework.web.bind.annotation.RequestBody;
++import org.springframework.web.bind.annotation.RequestMapping;
++import org.springframework.web.bind.annotation.RequestParam;
++import org.springframework.web.bind.annotation.ResponseStatus;
++import org.springframework.web.bind.annotation.RestController;
++import org.springframework.web.server.ResponseStatusException;
++
++/** 종목 토론. 조회(GET)는 비로그인도 가능하고, 로그인 상태면 liked/mine 이 채워진다. */
++@RestController
++@RequestMapping("/api/invest")
++@RequiredArgsConstructor
++public class StockDiscussionController {
++
++  private final StockDiscussionService discussionService;
++  private final CurrentUserProvider currentUserProvider;
++
++  @GetMapping("/symbols/{symbol}/posts")
++  public PageResponse<StockPostResponse> posts(
++    @PathVariable("symbol") String symbol,
++    @RequestParam(name = "sort", defaultValue = "latest") String sort,
++    @RequestParam(name = "page", defaultValue = "0") int page,
++    @RequestParam(name = "size", defaultValue = "20") int size,
++    Authentication authentication
++  ) {
++    return discussionService.listPosts(
++      symbol,
++      "popular".equalsIgnoreCase(sort),
++      page,
++      size,
++      optionalUser(authentication)
++    );
++  }
++
++  @PostMapping("/symbols/{symbol}/posts")
++  @ResponseStatus(HttpStatus.CREATED)
++  public StockPostResponse createPost(
++    @PathVariable("symbol") String symbol,
++    @Valid @RequestBody StockPostRequest request,
++    Authentication authentication
++  ) {
++    return discussionService.createPost(user(authentication), symbol, request.content());
++  }
++
++  @PatchMapping("/posts/{postId}")
++  public StockPostResponse editPost(
++    @PathVariable("postId") Long postId,
++    @Valid @RequestBody StockPostRequest request,
++    Authentication authentication
++  ) {
++    return discussionService.editPost(user(authentication), postId, request.content());
++  }
++
++  @DeleteMapping("/posts/{postId}")
++  @ResponseStatus(HttpStatus.NO_CONTENT)
++  public void deletePost(
++    @PathVariable("postId") Long postId,
++    Authentication authentication
++  ) {
++    discussionService.deletePost(user(authentication), postId);
++  }
++
++  @PutMapping("/posts/{postId}/like")
++  public LikeResponse like(
++    @PathVariable("postId") Long postId,
++    Authentication authentication
++  ) {
++    return discussionService.like(user(authentication), postId);
++  }
++
++  @DeleteMapping("/posts/{postId}/like")
++  public LikeResponse unlike(
++    @PathVariable("postId") Long postId,
++    Authentication authentication
++  ) {
++    return discussionService.unlike(user(authentication), postId);
++  }
++
++  @GetMapping("/posts/{postId}/comments")
++  public List<StockCommentResponse> comments(
++    @PathVariable("postId") Long postId,
++    Authentication authentication
++  ) {
++    return discussionService.listComments(postId, optionalUser(authentication));
++  }
++
++  @PostMapping("/posts/{postId}/comments")
++  @ResponseStatus(HttpStatus.CREATED)
++  public StockCommentResponse createComment(
++    @PathVariable("postId") Long postId,
++    @Valid @RequestBody StockCommentRequest request,
++    Authentication authentication
++  ) {
++    return discussionService.createComment(user(authentication), postId, request.content());
++  }
++
++  @DeleteMapping("/comments/{commentId}")
++  @ResponseStatus(HttpStatus.NO_CONTENT)
++  public void deleteComment(
++    @PathVariable("commentId") Long commentId,
++    Authentication authentication
++  ) {
++    discussionService.deleteComment(user(authentication), commentId);
++  }
++
++  private AuthenticatedUser user(Authentication authentication) {
++    return currentUserProvider.resolve(authentication);
++  }
++
++  private AuthenticatedUser optionalUser(Authentication authentication) {
++    if (authentication == null || !authentication.isAuthenticated()) {
++      return null;
++    }
++    try {
++      return currentUserProvider.resolve(authentication);
++    } catch (ResponseStatusException e) {
++      return null;
++    }
++  }
++}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/controller/StockNewsController.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/controller/StockNewsController.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/controller/StockNewsController.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/controller/StockNewsController.java	2026-11-18 00:10:22.806990753 +0900
+@@ -0,0 +1,24 @@
++package com.khj.playground.invest.controller;
++
++import com.khj.playground.invest.dto.NewsItemResponse;
++import com.khj.playground.invest.service.StockNewsService;
++import java.util.List;
++import lombok.RequiredArgsConstructor;
++import org.springframework.web.bind.annotation.GetMapping;
++import org.springframework.web.bind.annotation.PathVariable;
++import org.springframework.web.bind.annotation.RequestMapping;
++import org.springframework.web.bind.annotation.RestController;
++
++@RestController
++@RequestMapping("/api/invest")
++@RequiredArgsConstructor
++public class StockNewsController {
++
++  private final StockNewsService newsService;
++
++  /** 비로그인도 볼 수 있다. 최신순, 최대 15건. */
++  @GetMapping("/symbols/{symbol}/news")
++  public List<NewsItemResponse> news(@PathVariable("symbol") String symbol) {
++    return newsService.getNews(symbol);
++  }
++}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/dto/LikeResponse.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/dto/LikeResponse.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/dto/LikeResponse.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/dto/LikeResponse.java	2026-11-18 00:11:39.791663282 +0900
+@@ -0,0 +1,3 @@
++package com.khj.playground.invest.dto;
++
++public record LikeResponse(int likeCount, boolean liked) {}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/dto/NewsItemResponse.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/dto/NewsItemResponse.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/dto/NewsItemResponse.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/dto/NewsItemResponse.java	2026-11-18 00:10:22.803469332 +0900
+@@ -0,0 +1,13 @@
++package com.khj.playground.invest.dto;
++
++import java.time.Instant;
++
++/** 화면용 뉴스. 요약은 HTML 을 걷어낸 일반 텍스트이고, url 은 http(s) 만 허용한다. */
++public record NewsItemResponse(
++  long id,
++  String headline,
++  String summary,
++  String source,
++  String url,
++  Instant createdAt
++) {}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/dto/StockCommentRequest.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/dto/StockCommentRequest.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/dto/StockCommentRequest.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/dto/StockCommentRequest.java	2026-11-18 00:11:39.787844166 +0900
+@@ -0,0 +1,10 @@
++package com.khj.playground.invest.dto;
++
++import jakarta.validation.constraints.NotBlank;
++import jakarta.validation.constraints.Size;
++
++public record StockCommentRequest(
++  @NotBlank(message = "{invest-dto.comment.content.not-blank}")
++  @Size(max = 500, message = "{invest-dto.comment.content.size}")
++  String content
++) {}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/dto/StockCommentResponse.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/dto/StockCommentResponse.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/dto/StockCommentResponse.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/dto/StockCommentResponse.java	2026-11-18 00:11:39.790313803 +0900
+@@ -0,0 +1,31 @@
++package com.khj.playground.invest.dto;
++
++import com.khj.playground.invest.entity.StockComment;
++import java.time.LocalDateTime;
++import java.util.UUID;
++
++public record StockCommentResponse(
++  Long id,
++  Long postId,
++  String content,
++  UUID authorId,
++  String authorNickname,
++  boolean mine,
++  LocalDateTime createdAt
++) {
++  public static StockCommentResponse of(
++    StockComment comment,
++    String authorNickname,
++    boolean mine
++  ) {
++    return new StockCommentResponse(
++      comment.getId(),
++      comment.getPostId(),
++      comment.getContent(),
++      comment.getUserId(),
++      authorNickname,
++      mine,
++      comment.getCreatedAt()
++    );
++  }
++}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/dto/StockPostRequest.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/dto/StockPostRequest.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/dto/StockPostRequest.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/dto/StockPostRequest.java	2026-11-18 00:11:39.786575833 +0900
+@@ -0,0 +1,10 @@
++package com.khj.playground.invest.dto;
++
++import jakarta.validation.constraints.NotBlank;
++import jakarta.validation.constraints.Size;
++
++public record StockPostRequest(
++  @NotBlank(message = "{invest-dto.post.content.not-blank}")
++  @Size(max = 1000, message = "{invest-dto.post.content.size}")
++  String content
++) {}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/dto/StockPostResponse.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/dto/StockPostResponse.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/dto/StockPostResponse.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/dto/StockPostResponse.java	2026-11-18 00:11:39.789057223 +0900
+@@ -0,0 +1,41 @@
++package com.khj.playground.invest.dto;
++
++import com.khj.playground.invest.entity.StockPost;
++import java.time.LocalDateTime;
++import java.util.UUID;
++
++/** liked/mine 은 요청한 사용자 기준이다. 비로그인이면 둘 다 false. */
++public record StockPostResponse(
++  Long id,
++  String symbol,
++  String content,
++  UUID authorId,
++  String authorNickname,
++  int likeCount,
++  int commentCount,
++  boolean liked,
++  boolean mine,
++  LocalDateTime createdAt,
++  boolean edited
++) {
++  public static StockPostResponse of(
++    StockPost post,
++    String authorNickname,
++    boolean liked,
++    boolean mine
++  ) {
++    return new StockPostResponse(
++      post.getId(),
++      post.getSymbol(),
++      post.getContent(),
++      post.getUserId(),
++      authorNickname,
++      post.getLikeCount(),
++      post.getCommentCount(),
++      liked,
++      mine,
++      post.getCreatedAt(),
++      post.getUpdatedAt() != null
++    );
++  }
++}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/entity/StockComment.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/entity/StockComment.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/entity/StockComment.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/entity/StockComment.java	2026-11-18 00:10:48.518811560 +0900
+@@ -0,0 +1,46 @@
++package com.khj.playground.invest.entity;
++
++import jakarta.persistence.Column;
++import jakarta.persistence.Entity;
++import jakarta.persistence.GeneratedValue;
++import jakarta.persistence.GenerationType;
++import jakarta.persistence.Id;
++import jakarta.persistence.Table;
++import java.time.LocalDateTime;
++import java.util.UUID;
++import lombok.AccessLevel;
++import lombok.Getter;
++import lombok.NoArgsConstructor;
++
++/** 종목 토론 글의 댓글. */
++@Getter
++@Entity
++@Table(name = "invest_stock_comments")
++@NoArgsConstructor(access = AccessLevel.PROTECTED)
++public class StockComment {
++
++  @Id
++  @GeneratedValue(strategy = GenerationType.IDENTITY)
++  private Long id;
++
++  @Column(name = "post_id", nullable = false)
++  private Long postId;
++
++  @Column(name = "user_id", nullable = false)
++  private UUID userId;
++
++  @Column(nullable = false, length = 500)
++  private String content;
++
++  @Column(name = "created_at", nullable = false)
++  private LocalDateTime createdAt;
++
++  public static StockComment of(Long postId, UUID userId, String content) {
++    StockComment comment = new StockComment();
++    comment.postId = postId;
++    comment.userId = userId;
++    comment.content = content;
++    comment.createdAt = LocalDateTime.now();
++    return comment;
++  }
++}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/entity/StockPost.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/entity/StockPost.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/entity/StockPost.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/entity/StockPost.java	2026-11-18 00:10:48.515531091 +0900
+@@ -0,0 +1,63 @@
++package com.khj.playground.invest.entity;
++
++import jakarta.persistence.Column;
++import jakarta.persistence.Entity;
++import jakarta.persistence.GeneratedValue;
++import jakarta.persistence.GenerationType;
++import jakarta.persistence.Id;
++import jakarta.persistence.Table;
++import java.time.LocalDateTime;
++import java.util.UUID;
++import lombok.AccessLevel;
++import lombok.Getter;
++import lombok.NoArgsConstructor;
++
++/**
++ * 종목 토론 글. like_count/comment_count 는 정렬과 목록 표시를 위해 들고 있는 값이고,
++ * 좋아요·댓글을 바꿀 때마다 실제 건수로 다시 계산해 맞춘다.
++ */
++@Getter
++@Entity
++@Table(name = "invest_stock_posts")
++@NoArgsConstructor(access = AccessLevel.PROTECTED)
++public class StockPost {
++
++  @Id
++  @GeneratedValue(strategy = GenerationType.IDENTITY)
++  private Long id;
++
++  @Column(nullable = false, length = 20)
++  private String symbol;
++
++  @Column(name = "user_id", nullable = false)
++  private UUID userId;
++
++  @Column(nullable = false, length = 1000)
++  private String content;
++
++  @Column(name = "like_count", nullable = false)
++  private int likeCount;
++
++  @Column(name = "comment_count", nullable = false)
++  private int commentCount;
++
++  @Column(name = "created_at", nullable = false)
++  private LocalDateTime createdAt;
++
++  @Column(name = "updated_at")
++  private LocalDateTime updatedAt;
++
++  public static StockPost of(String symbol, UUID userId, String content) {
++    StockPost post = new StockPost();
++    post.symbol = symbol;
++    post.userId = userId;
++    post.content = content;
++    post.createdAt = LocalDateTime.now();
++    return post;
++  }
++
++  public void edit(String content) {
++    this.content = content;
++    this.updatedAt = LocalDateTime.now();
++  }
++}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/entity/StockPostLike.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/entity/StockPostLike.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/entity/StockPostLike.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/entity/StockPostLike.java	2026-11-18 00:10:48.520591117 +0900
+@@ -0,0 +1,42 @@
++package com.khj.playground.invest.entity;
++
++import jakarta.persistence.Column;
++import jakarta.persistence.Entity;
++import jakarta.persistence.GeneratedValue;
++import jakarta.persistence.GenerationType;
++import jakarta.persistence.Id;
++import jakarta.persistence.Table;
++import java.time.LocalDateTime;
++import java.util.UUID;
++import lombok.AccessLevel;
++import lombok.Getter;
++import lombok.NoArgsConstructor;
++
++/** 글 좋아요. (post_id, user_id) 는 유일하다. */
++@Getter
++@Entity
++@Table(name = "invest_stock_post_likes")
++@NoArgsConstructor(access = AccessLevel.PROTECTED)
++public class StockPostLike {
++
++  @Id
++  @GeneratedValue(strategy = GenerationType.IDENTITY)
++  private Long id;
++
++  @Column(name = "post_id", nullable = false)
++  private Long postId;
++
++  @Column(name = "user_id", nullable = false)
++  private UUID userId;
++
++  @Column(name = "created_at", nullable = false)
++  private LocalDateTime createdAt;
++
++  public static StockPostLike of(Long postId, UUID userId) {
++    StockPostLike like = new StockPostLike();
++    like.postId = postId;
++    like.userId = userId;
++    like.createdAt = LocalDateTime.now();
++    return like;
++  }
++}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/exception/InvestErrorCode.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/exception/InvestErrorCode.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/exception/InvestErrorCode.java	2026-11-18 00:13:40.737833863 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/exception/InvestErrorCode.java	2026-11-18 00:10:22.822869104 +0900
+@@ -17,7 +17,12 @@
+   INSUFFICIENT_CASH("insufficient-cash", HttpStatus.BAD_REQUEST),
+   INSUFFICIENT_HOLDINGS("insufficient-holdings", HttpStatus.BAD_REQUEST),
+   WATCHLIST_FULL("watchlist-full", HttpStatus.BAD_REQUEST),
+-  PARTICIPANT_NOT_FOUND("participant-not-found", HttpStatus.NOT_FOUND);
++  PARTICIPANT_NOT_FOUND("participant-not-found", HttpStatus.NOT_FOUND),
++  NEWS_UNAVAILABLE("news-unavailable", HttpStatus.SERVICE_UNAVAILABLE),
++  POST_NOT_FOUND("post-not-found", HttpStatus.NOT_FOUND),
++  COMMENT_NOT_FOUND("comment-not-found", HttpStatus.NOT_FOUND),
++  POST_FORBIDDEN("post-forbidden", HttpStatus.FORBIDDEN),
++  DISCUSSION_RATE_LIMITED("discussion-rate-limited", HttpStatus.TOO_MANY_REQUESTS);
+ 
+   private final String key;
+   private final HttpStatus status;
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/market/AlpacaMarketDataClient.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/market/AlpacaMarketDataClient.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/market/AlpacaMarketDataClient.java	2026-11-18 00:13:40.740913125 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/market/AlpacaMarketDataClient.java	2026-11-18 00:10:22.795679048 +0900
+@@ -397,6 +397,66 @@
+     return new AssetIndex(List.copyOf(assets), Map.copyOf(bySymbol), Instant.now());
+   }
+ 
++  // ---------- 뉴스 ----------
++
++  /**
++   * Benzinga 뉴스(Alpaca News API). 본문(content)은 받지 않고 제목·요약·링크만 쓴다.
++   * 응답 구조: { "news": [ { id, headline, summary, source, url, created_at, ... } ] }
++   */
++  @Override
++  public List<NewsItem> fetchNews(String symbol, int limit) {
++    Map<String, Object> body = call(() ->
++      dataClient
++        .get()
++        .uri(uri ->
++          uri
++            .path("/v1beta1/news")
++            .queryParam("symbols", symbol)
++            .queryParam("limit", limit)
++            .queryParam("sort", "desc")
++            .queryParam("include_content", false)
++            .build()
++        )
++        .retrieve()
++        .body(new ParameterizedTypeReference<Map<String, Object>>() {})
++    );
++    if (body == null) return List.of();
++    return parseNews(body);
++  }
++
++  static List<NewsItem> parseNews(Map<String, Object> body) {
++    List<NewsItem> result = new ArrayList<>();
++    if (!(body.get("news") instanceof List<?> articles)) return result;
++    for (Object article : articles) {
++      if (!(article instanceof Map<?, ?> m)) continue;
++      Object id = m.get("id");
++      String headline = str(m.get("headline"));
++      if (!(id instanceof Number n) || headline == null) continue;
++      Instant createdAt = null;
++      try {
++        String created = str(m.get("created_at"));
++        if (created != null) createdAt = Instant.parse(created);
++      } catch (RuntimeException e) {
++        // 시각을 읽지 못해도 기사는 보여준다.
++      }
++      result.add(
++        new NewsItem(
++          n.longValue(),
++          headline,
++          str(m.get("summary")),
++          str(m.get("source")),
++          str(m.get("url")),
++          createdAt
++        )
++      );
++    }
++    return result;
++  }
++
++  private static String str(Object value) {
++    return value instanceof String s && !s.isBlank() ? s : null;
++  }
++
+   private <T> T call(java.util.function.Supplier<T> request) {
+     try {
+       return request.get();
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/market/MarketDataClient.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/market/MarketDataClient.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/market/MarketDataClient.java	2026-11-18 00:13:40.740850216 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/market/MarketDataClient.java	2026-11-18 00:10:22.795177268 +0900
+@@ -48,6 +48,15 @@
+     return List.of();
+   }
+ 
++  /**
++   * 종목 뉴스(최신순). 지원하지 않는 제공자는 빈 목록이다.
++   *
++   * @throws MarketDataException 제공자 오류, 호출 한도 초과 등
++   */
++  default List<NewsItem> fetchNews(String symbol, int limit) {
++    return List.of();
++  }
++
+   /** 미국 거래소 종목만 돌려준다. 실패하면 빈 목록 대신 예외를 던진다. */
+   List<SymbolInfo> search(String query);
+ 
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/market/NewsItem.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/market/NewsItem.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/market/NewsItem.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/market/NewsItem.java	2026-11-18 00:10:22.799529562 +0900
+@@ -0,0 +1,13 @@
++package com.khj.playground.invest.market;
++
++import java.time.Instant;
++
++/** 제공자가 준 뉴스 한 건. summary, source, url, createdAt 은 없을 수 있다. */
++public record NewsItem(
++  long id,
++  String headline,
++  String summary,
++  String source,
++  String url,
++  Instant createdAt
++) {}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/repository/StockCommentRepository.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/repository/StockCommentRepository.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/repository/StockCommentRepository.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/repository/StockCommentRepository.java	2026-11-18 00:10:48.524320048 +0900
+@@ -0,0 +1,24 @@
++package com.khj.playground.invest.repository;
++
++import com.khj.playground.invest.entity.StockComment;
++import java.util.List;
++import java.util.UUID;
++import org.springframework.data.domain.Pageable;
++import org.springframework.data.jpa.repository.JpaRepository;
++import org.springframework.data.jpa.repository.Modifying;
++import org.springframework.data.jpa.repository.Query;
++import org.springframework.data.repository.query.Param;
++import org.springframework.transaction.annotation.Transactional;
++
++public interface StockCommentRepository extends JpaRepository<StockComment, Long> {
++  /** 오래된 순. */
++  List<StockComment> findByPostIdOrderByIdAsc(Long postId, Pageable pageable);
++
++  @Query("SELECT DISTINCT c.postId FROM StockComment c WHERE c.userId = :userId")
++  List<Long> findPostIdsByUserId(@Param("userId") UUID userId);
++
++  @Transactional
++  @Modifying
++  @Query("DELETE FROM StockComment c WHERE c.userId = :userId")
++  int deleteAllByUserId(@Param("userId") UUID userId);
++}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/repository/StockPostLikeRepository.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/repository/StockPostLikeRepository.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/repository/StockPostLikeRepository.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/repository/StockPostLikeRepository.java	2026-11-18 00:10:48.526144761 +0900
+@@ -0,0 +1,38 @@
++package com.khj.playground.invest.repository;
++
++import com.khj.playground.invest.entity.StockPostLike;
++import java.util.Collection;
++import java.util.List;
++import java.util.UUID;
++import org.springframework.data.jpa.repository.JpaRepository;
++import org.springframework.data.jpa.repository.Modifying;
++import org.springframework.data.jpa.repository.Query;
++import org.springframework.data.repository.query.Param;
++import org.springframework.transaction.annotation.Transactional;
++
++public interface StockPostLikeRepository extends JpaRepository<StockPostLike, Long> {
++  boolean existsByPostIdAndUserId(Long postId, UUID userId);
++
++  /** 주어진 글 중 이 사용자가 좋아요한 글의 id. */
++  @Query("SELECT l.postId FROM StockPostLike l WHERE l.userId = :userId AND l.postId IN :postIds")
++  List<Long> findLikedPostIds(
++    @Param("userId") UUID userId,
++    @Param("postIds") Collection<Long> postIds
++  );
++
++  @Query("SELECT l.postId FROM StockPostLike l WHERE l.userId = :userId")
++  List<Long> findPostIdsByUserId(@Param("userId") UUID userId);
++
++  @Transactional
++  @Modifying
++  @Query("DELETE FROM StockPostLike l WHERE l.postId = :postId AND l.userId = :userId")
++  int deleteByPostIdAndUserId(
++    @Param("postId") Long postId,
++    @Param("userId") UUID userId
++  );
++
++  @Transactional
++  @Modifying
++  @Query("DELETE FROM StockPostLike l WHERE l.userId = :userId")
++  int deleteAllByUserId(@Param("userId") UUID userId);
++}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/repository/StockPostRepository.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/repository/StockPostRepository.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/repository/StockPostRepository.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/repository/StockPostRepository.java	2026-11-18 00:11:54.382008590 +0900
+@@ -0,0 +1,36 @@
++package com.khj.playground.invest.repository;
++
++import com.khj.playground.invest.entity.StockPost;
++import java.util.UUID;
++import org.springframework.data.domain.Page;
++import org.springframework.data.domain.Pageable;
++import org.springframework.data.jpa.repository.JpaRepository;
++import org.springframework.data.jpa.repository.Modifying;
++import org.springframework.data.jpa.repository.Query;
++import org.springframework.data.repository.query.Param;
++import org.springframework.transaction.annotation.Transactional;
++
++public interface StockPostRepository extends JpaRepository<StockPost, Long> {
++  Page<StockPost> findBySymbol(String symbol, Pageable pageable);
++
++  /** 좋아요 건수를 실제 행 수로 다시 맞춘다. 여러 번 호출해도 결과가 같다. */
++  @Transactional
++  @Modifying(clearAutomatically = true, flushAutomatically = true)
++  @Query(
++    "UPDATE StockPost p SET p.likeCount = (SELECT CAST(COUNT(l) AS Integer) FROM StockPostLike l WHERE l.postId = p.id) WHERE p.id = :postId"
++  )
++  int recountLikes(@Param("postId") Long postId);
++
++  @Transactional
++  @Modifying(clearAutomatically = true, flushAutomatically = true)
++  @Query(
++    "UPDATE StockPost p SET p.commentCount = (SELECT CAST(COUNT(c) AS Integer) FROM StockComment c WHERE c.postId = p.id) WHERE p.id = :postId"
++  )
++  int recountComments(@Param("postId") Long postId);
++
++  /** 탈퇴 회원의 글. 댓글·좋아요는 FK(ON DELETE CASCADE)로 함께 지워진다. */
++  @Transactional
++  @Modifying
++  @Query("DELETE FROM StockPost p WHERE p.userId = :userId")
++  int deleteAllByUserId(@Param("userId") UUID userId);
++}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/service/DiscussionRateLimiter.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/service/DiscussionRateLimiter.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/service/DiscussionRateLimiter.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/service/DiscussionRateLimiter.java	2026-11-18 00:11:39.793116544 +0900
+@@ -0,0 +1,52 @@
++package com.khj.playground.invest.service;
++
++import com.khj.playground.common.exception.ApiException;
++import com.khj.playground.invest.exception.InvestErrorCode;
++import java.time.Duration;
++import java.time.Instant;
++import java.util.UUID;
++import lombok.extern.slf4j.Slf4j;
++import org.springframework.data.redis.core.StringRedisTemplate;
++import org.springframework.stereotype.Component;
++
++/** 토론 글·댓글 도배 방지. 사용자별로 1분에 쓸 수 있는 개수를 제한한다. */
++@Slf4j
++@Component
++public class DiscussionRateLimiter {
++
++  static final int POSTS_PER_MINUTE = 3;
++  static final int COMMENTS_PER_MINUTE = 10;
++
++  private final StringRedisTemplate redisTemplate;
++
++  public DiscussionRateLimiter(StringRedisTemplate redisTemplate) {
++    this.redisTemplate = redisTemplate;
++  }
++
++  public void checkPost(UUID userId) {
++    check("post", userId, POSTS_PER_MINUTE);
++  }
++
++  public void checkComment(UUID userId) {
++    check("comment", userId, COMMENTS_PER_MINUTE);
++  }
++
++  /** Redis 장애 시에는 막지 않는다(글쓰기 자체가 더 중요). */
++  private void check(String action, UUID userId, int limit) {
++    String key =
++      "invest:discussion:" + action + ":" + userId + ":" + (Instant.now().getEpochSecond() / 60);
++    try {
++      Long count = redisTemplate.opsForValue().increment(key);
++      if (count != null && count == 1L) {
++        redisTemplate.expire(key, Duration.ofMinutes(2));
++      }
++      if (count != null && count > limit) {
++        throw new ApiException(InvestErrorCode.DISCUSSION_RATE_LIMITED);
++      }
++    } catch (ApiException e) {
++      throw e;
++    } catch (RuntimeException e) {
++      log.warn("토론 도배 방지 카운터 오류: {}", e.getMessage());
++    }
++  }
++}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/service/InvestUserCleanup.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/service/InvestUserCleanup.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/service/InvestUserCleanup.java	2026-11-18 00:13:40.739107911 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/service/InvestUserCleanup.java	2026-11-18 00:11:39.829906786 +0900
+@@ -2,8 +2,13 @@
+ 
+ import com.khj.playground.common.event.UserWithdrawnEvent;
+ import com.khj.playground.invest.repository.InvestAccountRepository;
++import com.khj.playground.invest.repository.StockCommentRepository;
++import com.khj.playground.invest.repository.StockPostLikeRepository;
++import com.khj.playground.invest.repository.StockPostRepository;
+ import com.khj.playground.invest.repository.WatchlistRepository;
+ import com.khj.playground.invest.repository.WeeklyResultRepository;
++import java.util.HashSet;
++import java.util.Set;
+ import lombok.RequiredArgsConstructor;
+ import lombok.extern.slf4j.Slf4j;
+ import org.springframework.context.event.EventListener;
+@@ -14,6 +19,7 @@
+  * 이 리스너는 탈퇴 트랜잭션 안에서 동기로 실행되므로, 여기서 실패하면 탈퇴도 취소된다.
+  *
+  * - 계좌를 지우면 DB 의 ON DELETE CASCADE 로 보유 종목과 거래 내역이 함께 지워진다.
++ * - 종목 토론의 글·댓글·좋아요도 지운다. 지운 글에 달린 다른 사람의 댓글은 함께 사라진다.
+  * - 관심 종목과 주간 성적(포인트)도 지운다. 이미 정산된 주의 다른 사람 순위는 바뀌지 않는다.
+  */
+ @Slf4j
+@@ -26,19 +32,38 @@
+   private final WeeklyResultRepository resultRepository;
+   private final RankingService rankingService;
+   private final ScoreService scoreService;
++  private final StockPostRepository postRepository;
++  private final StockCommentRepository commentRepository;
++  private final StockPostLikeRepository likeRepository;
+ 
+   @EventListener
+   public void onUserWithdrawn(UserWithdrawnEvent event) {
+     accountRepository.findByUserId(event.userId()).ifPresent(accountRepository::delete);
+     int watched = watchlistRepository.deleteAllByUserId(event.userId());
+     int results = resultRepository.deleteAllByUserId(event.userId());
++    int discussion = deleteDiscussion(event);
+     rankingService.invalidate();
+     scoreService.invalidate();
+     log.info(
+-      "탈퇴 회원의 모의투자 데이터 삭제 userId={} 관심종목={} 주간성적={}",
++      "탈퇴 회원의 모의투자 데이터 삭제 userId={} 관심종목={} 주간성적={} 토론글={}",
+       event.userId(),
+       watched,
+-      results
++      results,
++      discussion
+     );
+   }
++
++  /** 남의 글에 남긴 댓글·좋아요를 지운 뒤, 영향받은 글의 건수를 다시 맞춘다. */
++  private int deleteDiscussion(UserWithdrawnEvent event) {
++    Set<Long> affected = new HashSet<>(likeRepository.findPostIdsByUserId(event.userId()));
++    affected.addAll(commentRepository.findPostIdsByUserId(event.userId()));
++    int posts = postRepository.deleteAllByUserId(event.userId());
++    likeRepository.deleteAllByUserId(event.userId());
++    commentRepository.deleteAllByUserId(event.userId());
++    for (Long postId : affected) {
++      postRepository.recountLikes(postId);
++      postRepository.recountComments(postId);
++    }
++    return posts;
++  }
+ }
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/service/StockDiscussionService.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/service/StockDiscussionService.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/service/StockDiscussionService.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/service/StockDiscussionService.java	2026-11-18 00:11:39.794374620 +0900
+@@ -0,0 +1,222 @@
++package com.khj.playground.invest.service;
++
++import com.khj.playground.common.dto.PageResponse;
++import com.khj.playground.common.exception.ApiException;
++import com.khj.playground.common.security.AuthenticatedUser;
++import com.khj.playground.common.security.MemberLookup;
++import com.khj.playground.invest.dto.LikeResponse;
++import com.khj.playground.invest.dto.StockCommentResponse;
++import com.khj.playground.invest.dto.StockPostResponse;
++import com.khj.playground.invest.entity.StockComment;
++import com.khj.playground.invest.entity.StockPost;
++import com.khj.playground.invest.entity.StockPostLike;
++import com.khj.playground.invest.exception.InvestErrorCode;
++import com.khj.playground.invest.repository.StockCommentRepository;
++import com.khj.playground.invest.repository.StockPostLikeRepository;
++import com.khj.playground.invest.repository.StockPostRepository;
++import java.util.HashMap;
++import java.util.HashSet;
++import java.util.List;
++import java.util.Map;
++import java.util.Set;
++import java.util.UUID;
++import lombok.RequiredArgsConstructor;
++import org.springframework.dao.DataIntegrityViolationException;
++import org.springframework.data.domain.Page;
++import org.springframework.data.domain.PageRequest;
++import org.springframework.data.domain.Pageable;
++import org.springframework.data.domain.Sort;
++import org.springframework.stereotype.Service;
++import org.springframework.transaction.annotation.Transactional;
++
++/**
++ * 종목 토론(글·댓글·좋아요). 조회는 누구나, 쓰기는 로그인한 사용자만 한다.
++ * 수정·삭제는 작성자 본인이, 삭제는 운영자도 할 수 있다.
++ */
++@Service
++@RequiredArgsConstructor
++public class StockDiscussionService {
++
++  static final int MAX_PAGE_SIZE = 50;
++  static final int MAX_COMMENTS = 200;
++  private static final String WITHDRAWN = "(탈퇴한 사용자)";
++
++  private final StockPostRepository postRepository;
++  private final StockCommentRepository commentRepository;
++  private final StockPostLikeRepository likeRepository;
++  private final MemberLookup memberLookup;
++  private final PriceService priceService;
++  private final DiscussionRateLimiter rateLimiter;
++
++  // ----- 글 -----
++
++  /** @param popular true 면 좋아요 많은 순, 아니면 최신순 */
++  @Transactional(readOnly = true)
++  public PageResponse<StockPostResponse> listPosts(
++    String rawSymbol,
++    boolean popular,
++    int page,
++    int size,
++    AuthenticatedUser viewer
++  ) {
++    String symbol = priceService.normalize(rawSymbol);
++    Sort sort = popular
++      ? Sort.by(Sort.Order.desc("likeCount"), Sort.Order.desc("createdAt"), Sort.Order.desc("id"))
++      : Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
++    Pageable pageable = PageRequest.of(
++      Math.max(page, 0),
++      Math.min(Math.max(size, 1), MAX_PAGE_SIZE),
++      sort
++    );
++    Page<StockPost> result = postRepository.findBySymbol(symbol, pageable);
++
++    List<StockPost> posts = result.getContent();
++    Map<UUID, String> nicknames = nicknames(posts.stream().map(StockPost::getUserId).toList());
++    Set<Long> liked = likedBy(viewer, posts.stream().map(StockPost::getId).toList());
++    return PageResponse.of(result, p -> toResponse(p, nicknames, liked, viewer));
++  }
++
++  @Transactional(readOnly = true)
++  public StockPostResponse getPost(Long postId, AuthenticatedUser viewer) {
++    StockPost post = findPost(postId);
++    Map<UUID, String> nicknames = nicknames(List.of(post.getUserId()));
++    return toResponse(post, nicknames, likedBy(viewer, List.of(postId)), viewer);
++  }
++
++  public StockPostResponse createPost(AuthenticatedUser user, String rawSymbol, String content) {
++    String symbol = priceService.normalize(rawSymbol);
++    // 존재하는 종목인지 확인한다. 없으면 404 가 나가고 저장하지 않는다.
++    priceService.getQuote(symbol);
++    rateLimiter.checkPost(user.id());
++    StockPost saved = postRepository.save(StockPost.of(symbol, user.id(), content.strip()));
++    return StockPostResponse.of(saved, user.nickname(), false, true);
++  }
++
++  @Transactional
++  public StockPostResponse editPost(AuthenticatedUser user, Long postId, String content) {
++    StockPost post = findPost(postId);
++    // 수정은 운영자도 할 수 없다. 남의 이름으로 글이 바뀌지 않게 한다.
++    if (!post.getUserId().equals(user.id())) {
++      throw new ApiException(InvestErrorCode.POST_FORBIDDEN);
++    }
++    post.edit(content.strip());
++    return toResponse(
++      post,
++      Map.of(user.id(), user.nickname()),
++      likedBy(user, List.of(postId)),
++      user
++    );
++  }
++
++  public void deletePost(AuthenticatedUser user, Long postId) {
++    StockPost post = findPost(postId);
++    requireOwnerOrAdmin(user, post.getUserId());
++    postRepository.deleteById(postId);
++  }
++
++  // ----- 좋아요 -----
++
++  /** 이미 눌렀어도 결과는 같다(멱등). 동시에 두 번 눌러 유니크 제약에 걸려도 무시한다. */
++  public LikeResponse like(AuthenticatedUser user, Long postId) {
++    findPost(postId);
++    if (!likeRepository.existsByPostIdAndUserId(postId, user.id())) {
++      try {
++        likeRepository.saveAndFlush(StockPostLike.of(postId, user.id()));
++      } catch (DataIntegrityViolationException e) {
++        // 이미 들어갔다.
++      }
++      postRepository.recountLikes(postId);
++    }
++    return new LikeResponse(findPost(postId).getLikeCount(), true);
++  }
++
++  public LikeResponse unlike(AuthenticatedUser user, Long postId) {
++    findPost(postId);
++    if (likeRepository.deleteByPostIdAndUserId(postId, user.id()) > 0) {
++      postRepository.recountLikes(postId);
++    }
++    return new LikeResponse(findPost(postId).getLikeCount(), false);
++  }
++
++  // ----- 댓글 -----
++
++  @Transactional(readOnly = true)
++  public List<StockCommentResponse> listComments(Long postId, AuthenticatedUser viewer) {
++    findPost(postId);
++    List<StockComment> comments = commentRepository.findByPostIdOrderByIdAsc(
++      postId,
++      PageRequest.of(0, MAX_COMMENTS)
++    );
++    Map<UUID, String> nicknames = nicknames(comments.stream().map(StockComment::getUserId).toList());
++    return comments
++      .stream()
++      .map(c ->
++        StockCommentResponse.of(
++          c,
++          nicknames.getOrDefault(c.getUserId(), WITHDRAWN),
++          viewer != null && viewer.id().equals(c.getUserId())
++        )
++      )
++      .toList();
++  }
++
++  public StockCommentResponse createComment(AuthenticatedUser user, Long postId, String content) {
++    findPost(postId);
++    rateLimiter.checkComment(user.id());
++    StockComment saved = commentRepository.save(
++      StockComment.of(postId, user.id(), content.strip())
++    );
++    postRepository.recountComments(postId);
++    return StockCommentResponse.of(saved, user.nickname(), true);
++  }
++
++  public void deleteComment(AuthenticatedUser user, Long commentId) {
++    StockComment comment = commentRepository
++      .findById(commentId)
++      .orElseThrow(() -> new ApiException(InvestErrorCode.COMMENT_NOT_FOUND));
++    requireOwnerOrAdmin(user, comment.getUserId());
++    commentRepository.deleteById(commentId);
++    postRepository.recountComments(comment.getPostId());
++  }
++
++  // ----- 내부 -----
++
++  private StockPost findPost(Long postId) {
++    return postRepository
++      .findById(postId)
++      .orElseThrow(() -> new ApiException(InvestErrorCode.POST_NOT_FOUND));
++  }
++
++  private void requireOwnerOrAdmin(AuthenticatedUser user, UUID ownerId) {
++    if (!user.admin() && !user.id().equals(ownerId)) {
++      throw new ApiException(InvestErrorCode.POST_FORBIDDEN);
++    }
++  }
++
++  private StockPostResponse toResponse(
++    StockPost post,
++    Map<UUID, String> nicknames,
++    Set<Long> liked,
++    AuthenticatedUser viewer
++  ) {
++    return StockPostResponse.of(
++      post,
++      nicknames.getOrDefault(post.getUserId(), WITHDRAWN),
++      liked.contains(post.getId()),
++      viewer != null && viewer.id().equals(post.getUserId())
++    );
++  }
++
++  private Set<Long> likedBy(AuthenticatedUser viewer, List<Long> postIds) {
++    if (viewer == null || postIds.isEmpty()) return Set.of();
++    return new HashSet<>(likeRepository.findLikedPostIds(viewer.id(), postIds));
++  }
++
++  private Map<UUID, String> nicknames(List<UUID> userIds) {
++    Map<UUID, String> result = new HashMap<>();
++    for (UUID id : new HashSet<>(userIds)) {
++      memberLookup.findById(id).ifPresent(m -> result.put(id, m.nickname()));
++    }
++    return result;
++  }
++}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/java/com/khj/playground/invest/service/StockNewsService.java /home/claude/kimhyeongju/mychat-back/invest/src/main/java/com/khj/playground/invest/service/StockNewsService.java
+--- mychat-back/invest/src/main/java/com/khj/playground/invest/service/StockNewsService.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/java/com/khj/playground/invest/service/StockNewsService.java	2026-11-18 00:10:22.803529563 +0900
+@@ -0,0 +1,133 @@
++package com.khj.playground.invest.service;
++
++import com.khj.playground.common.exception.ApiException;
++import com.khj.playground.invest.dto.NewsItemResponse;
++import com.khj.playground.invest.exception.InvestErrorCode;
++import com.khj.playground.invest.market.MarketDataClient;
++import com.khj.playground.invest.market.MarketDataException;
++import com.khj.playground.invest.market.NewsItem;
++import java.time.Duration;
++import java.time.Instant;
++import java.util.Comparator;
++import java.util.List;
++import java.util.Map;
++import java.util.concurrent.ConcurrentHashMap;
++import java.util.regex.Pattern;
++import lombok.extern.slf4j.Slf4j;
++import org.springframework.beans.factory.annotation.Value;
++import org.springframework.stereotype.Service;
++
++/**
++ * 종목 뉴스. 같은 종목은 일정 시간 캐시해서 외부 호출 한도(분당)를 아낀다.
++ * 제공자가 실패하거나 한도에 걸리면 오래된 캐시라도 돌려주고, 캐시가 없을 때만 오류를 낸다.
++ */
++@Slf4j
++@Service
++public class StockNewsService {
++
++  static final int MAX_ITEMS = 15;
++  private static final int MAX_CACHED_SYMBOLS = 500;
++  private static final int MAX_SUMMARY_LENGTH = 300;
++  private static final Pattern TAGS = Pattern.compile("<[^>]*>");
++  private static final Pattern SPACES = Pattern.compile("\\s+");
++
++  private final MarketDataClient marketDataClient;
++  private final MarketDataRateLimiter rateLimiter;
++  private final PriceService priceService;
++  private final Duration ttl;
++  private final Map<String, Cached> cache = new ConcurrentHashMap<>();
++
++  public StockNewsService(
++    MarketDataClient marketDataClient,
++    MarketDataRateLimiter rateLimiter,
++    PriceService priceService,
++    @Value("${invest.news.cache-seconds:300}") long cacheSeconds
++  ) {
++    this.marketDataClient = marketDataClient;
++    this.rateLimiter = rateLimiter;
++    this.priceService = priceService;
++    this.ttl = Duration.ofSeconds(cacheSeconds);
++  }
++
++  public List<NewsItemResponse> getNews(String rawSymbol) {
++    String symbol = priceService.normalize(rawSymbol);
++    Cached cached = cache.get(symbol);
++    if (cached != null && cached.isFresh(ttl)) {
++      return cached.items();
++    }
++    if (!rateLimiter.tryAcquire()) {
++      return fallback(cached);
++    }
++    try {
++      List<NewsItemResponse> items = marketDataClient
++        .fetchNews(symbol, MAX_ITEMS)
++        .stream()
++        .map(StockNewsService::toResponse)
++        .sorted(
++          Comparator.comparing(
++            NewsItemResponse::createdAt,
++            Comparator.nullsLast(Comparator.reverseOrder())
++          )
++        )
++        .toList();
++      remember(symbol, items);
++      return items;
++    } catch (MarketDataException e) {
++      log.warn("뉴스 조회 실패 symbol={} rateLimited={}", symbol, e.isRateLimited());
++      return fallback(cached);
++    }
++  }
++
++  private List<NewsItemResponse> fallback(Cached cached) {
++    if (cached != null) {
++      return cached.items();
++    }
++    throw new ApiException(InvestErrorCode.NEWS_UNAVAILABLE);
++  }
++
++  private void remember(String symbol, List<NewsItemResponse> items) {
++    if (cache.size() >= MAX_CACHED_SYMBOLS) {
++      // 가장 오래된 항목부터 비운다. 종목 수가 한정적이라 단순한 방식으로 충분하다.
++      cache
++        .entrySet()
++        .stream()
++        .min(Comparator.comparing(e -> e.getValue().loadedAt()))
++        .ifPresent(e -> cache.remove(e.getKey()));
++    }
++    cache.put(symbol, new Cached(items, Instant.now()));
++  }
++
++  static NewsItemResponse toResponse(NewsItem item) {
++    return new NewsItemResponse(
++      item.id(),
++      item.headline().strip(),
++      cleanSummary(item.summary()),
++      item.source(),
++      safeUrl(item.url()),
++      item.createdAt()
++    );
++  }
++
++  /** 요약에 HTML 이 섞여 올 수 있어 태그를 걷고 길이를 제한한다. 화면은 텍스트로만 그린다. */
++  static String cleanSummary(String summary) {
++    if (summary == null) return null;
++    String text = SPACES.matcher(TAGS.matcher(summary).replaceAll(" ")).replaceAll(" ").strip();
++    if (text.isEmpty()) return null;
++    return text.length() > MAX_SUMMARY_LENGTH
++      ? text.substring(0, MAX_SUMMARY_LENGTH).strip() + "…"
++      : text;
++  }
++
++  /** javascript: 같은 스킴이 링크로 나가지 않도록 http(s) 만 허용한다. */
++  static String safeUrl(String url) {
++    if (url == null) return null;
++    String lower = url.strip().toLowerCase();
++    return lower.startsWith("https://") || lower.startsWith("http://") ? url.strip() : null;
++  }
++
++  private record Cached(List<NewsItemResponse> items, Instant loadedAt) {
++    boolean isFresh(Duration ttl) {
++      return Duration.between(loadedAt, Instant.now()).compareTo(ttl) < 0;
++    }
++  }
++}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/resources/db/migration/invest/V410__create_invest_stock_discussion.sql /home/claude/kimhyeongju/mychat-back/invest/src/main/resources/db/migration/invest/V410__create_invest_stock_discussion.sql
+--- mychat-back/invest/src/main/resources/db/migration/invest/V410__create_invest_stock_discussion.sql	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/main/resources/db/migration/invest/V410__create_invest_stock_discussion.sql	2026-11-18 00:10:48.515276079 +0900
+@@ -0,0 +1,47 @@
++-- 종목 토론: 글, 댓글, 좋아요. 사용자(user_id)는 다른 모듈 소유라 FK 를 걸지 않고,
++-- 탈퇴 시 InvestUserCleanup 이 지운다. 글을 지우면 댓글·좋아요는 FK 로 함께 지워진다.
++CREATE TABLE invest_stock_posts (
++    id             BIGINT         NOT NULL AUTO_INCREMENT,
++    symbol         VARCHAR(20)    NOT NULL,
++    user_id        UUID           NOT NULL,
++    content        VARCHAR(1000)  NOT NULL,
++    like_count     INT            NOT NULL DEFAULT 0,
++    comment_count  INT            NOT NULL DEFAULT 0,
++    created_at     DATETIME(6)    NOT NULL,
++    updated_at     DATETIME(6)    NULL,
++    PRIMARY KEY (id),
++    INDEX idx_stock_posts_symbol_created (symbol, created_at, id),
++    INDEX idx_stock_posts_symbol_likes (symbol, like_count, created_at),
++    INDEX idx_stock_posts_user (user_id)
++) ENGINE = InnoDB
++  DEFAULT CHARSET = utf8mb4
++  COLLATE = utf8mb4_uca1400_ai_ci;
++
++CREATE TABLE invest_stock_comments (
++    id          BIGINT        NOT NULL AUTO_INCREMENT,
++    post_id     BIGINT        NOT NULL,
++    user_id     UUID          NOT NULL,
++    content     VARCHAR(500)  NOT NULL,
++    created_at  DATETIME(6)   NOT NULL,
++    PRIMARY KEY (id),
++    INDEX idx_stock_comments_post (post_id, id),
++    INDEX idx_stock_comments_user (user_id),
++    CONSTRAINT fk_stock_comments_post FOREIGN KEY (post_id)
++        REFERENCES invest_stock_posts (id) ON DELETE CASCADE
++) ENGINE = InnoDB
++  DEFAULT CHARSET = utf8mb4
++  COLLATE = utf8mb4_uca1400_ai_ci;
++
++CREATE TABLE invest_stock_post_likes (
++    id          BIGINT       NOT NULL AUTO_INCREMENT,
++    post_id     BIGINT       NOT NULL,
++    user_id     UUID         NOT NULL,
++    created_at  DATETIME(6)  NOT NULL,
++    PRIMARY KEY (id),
++    CONSTRAINT uk_stock_post_likes UNIQUE (post_id, user_id),
++    INDEX idx_stock_post_likes_user (user_id),
++    CONSTRAINT fk_stock_post_likes_post FOREIGN KEY (post_id)
++        REFERENCES invest_stock_posts (id) ON DELETE CASCADE
++) ENGINE = InnoDB
++  DEFAULT CHARSET = utf8mb4
++  COLLATE = utf8mb4_uca1400_ai_ci;
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/resources/i18n/exception_en.yml /home/claude/kimhyeongju/mychat-back/invest/src/main/resources/i18n/exception_en.yml
+--- mychat-back/invest/src/main/resources/i18n/exception_en.yml	2026-11-18 00:13:40.742411564 +0900
++++ mychat-back/invest/src/main/resources/i18n/exception_en.yml	2026-11-18 00:10:48.491004229 +0900
+@@ -51,3 +51,23 @@
+ participant-not-found:
+   code: '4013'
+   message: 'This user has not joined the mock investment.'
++
++news-unavailable:
++  code: '4014'
++  message: 'Could not load the news. Please try again later.'
++
++post-not-found:
++  code: '4015'
++  message: 'This post does not exist.'
++
++comment-not-found:
++  code: '4016'
++  message: 'This comment does not exist.'
++
++post-forbidden:
++  code: '4017'
++  message: 'You can only edit or delete your own posts and comments.'
++
++discussion-rate-limited:
++  code: '4018'
++  message: 'You are posting too fast. Please try again shortly.'
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/resources/i18n/exception_ko.yml /home/claude/kimhyeongju/mychat-back/invest/src/main/resources/i18n/exception_ko.yml
+--- mychat-back/invest/src/main/resources/i18n/exception_ko.yml	2026-11-18 00:13:40.742467433 +0900
++++ mychat-back/invest/src/main/resources/i18n/exception_ko.yml	2026-11-18 00:10:48.488855553 +0900
+@@ -51,3 +51,23 @@
+ participant-not-found:
+   code: '4013'
+   message: '모의투자에 참여하지 않은 사용자입니다.'
++
++news-unavailable:
++  code: '4014'
++  message: '뉴스를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'
++
++post-not-found:
++  code: '4015'
++  message: '존재하지 않는 글입니다.'
++
++comment-not-found:
++  code: '4016'
++  message: '존재하지 않는 댓글입니다.'
++
++post-forbidden:
++  code: '4017'
++  message: '본인이 작성한 글·댓글만 수정하거나 삭제할 수 있습니다.'
++
++discussion-rate-limited:
++  code: '4018'
++  message: '너무 빠르게 작성하고 있습니다. 잠시 후 다시 시도해주세요.'
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/resources/i18n/valid-message_en.yml /home/claude/kimhyeongju/mychat-back/invest/src/main/resources/i18n/valid-message_en.yml
+--- mychat-back/invest/src/main/resources/i18n/valid-message_en.yml	2026-11-18 00:13:40.742285361 +0900
++++ mychat-back/invest/src/main/resources/i18n/valid-message_en.yml	2026-11-18 00:11:39.851382706 +0900
+@@ -6,3 +6,11 @@
+   quantity:
+     min: 'The quantity must be at least {value}.'
+     max: 'You can order up to {value} shares at a time.'
++  post:
++    content:
++      not-blank: 'Please enter some content.'
++      size: 'Posts can be up to {max} characters.'
++  comment:
++    content:
++      not-blank: 'Please enter a comment.'
++      size: 'Comments can be up to {max} characters.'
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/main/resources/i18n/valid-message_ko.yml /home/claude/kimhyeongju/mychat-back/invest/src/main/resources/i18n/valid-message_ko.yml
+--- mychat-back/invest/src/main/resources/i18n/valid-message_ko.yml	2026-11-18 00:13:40.742517321 +0900
++++ mychat-back/invest/src/main/resources/i18n/valid-message_ko.yml	2026-11-18 00:11:39.850958591 +0900
+@@ -6,3 +6,11 @@
+   quantity:
+     min: '수량은 {value}주 이상이어야 합니다.'
+     max: '한 번에 {value}주까지 주문할 수 있습니다.'
++  post:
++    content:
++      not-blank: '글 내용을 입력해주세요.'
++      size: '글은 {max}자까지 쓸 수 있습니다.'
++  comment:
++    content:
++      not-blank: '댓글 내용을 입력해주세요.'
++      size: '댓글은 {max}자까지 쓸 수 있습니다.'
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/test/java/com/khj/playground/invest/market/AlpacaNewsParseTest.java /home/claude/kimhyeongju/mychat-back/invest/src/test/java/com/khj/playground/invest/market/AlpacaNewsParseTest.java
+--- mychat-back/invest/src/test/java/com/khj/playground/invest/market/AlpacaNewsParseTest.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/test/java/com/khj/playground/invest/market/AlpacaNewsParseTest.java	2026-11-18 00:12:06.955535754 +0900
+@@ -0,0 +1,52 @@
++package com.khj.playground.invest.market;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++import static org.junit.jupiter.api.Assertions.assertNull;
++
++import java.time.Instant;
++import java.util.List;
++import java.util.Map;
++import org.junit.jupiter.api.Test;
++
++class AlpacaNewsParseTest {
++
++  @Test
++  void parsesArticles() {
++    Map<String, Object> body = Map.of(
++      "news",
++      List.of(
++        Map.of(
++          "id",
++          24803233,
++          "headline",
++          "Apple beats estimates",
++          "summary",
++          "Strong quarter",
++          "source",
++          "benzinga",
++          "url",
++          "https://www.benzinga.com/x",
++          "created_at",
++          "2024-03-22T14:44:27Z"
++        ),
++        Map.of("id", 2, "headline", "No extras")
++      )
++    );
++    List<NewsItem> items = AlpacaMarketDataClient.parseNews(body);
++    assertEquals(2, items.size());
++    assertEquals(24803233L, items.get(0).id());
++    assertEquals(Instant.parse("2024-03-22T14:44:27Z"), items.get(0).createdAt());
++    assertNull(items.get(1).summary());
++    assertNull(items.get(1).createdAt());
++  }
++
++  @Test
++  void skipsMalformedEntries() {
++    Map<String, Object> body = Map.of(
++      "news",
++      List.of(Map.of("headline", "no id"), "not a map", Map.of("id", 3))
++    );
++    assertEquals(0, AlpacaMarketDataClient.parseNews(body).size());
++    assertEquals(0, AlpacaMarketDataClient.parseNews(Map.of()).size());
++  }
++}
+diff -ruN -x node_modules -x dist -x build -x .git -x .gradle mychat-back/invest/src/test/java/com/khj/playground/invest/service/StockNewsServiceTest.java /home/claude/kimhyeongju/mychat-back/invest/src/test/java/com/khj/playground/invest/service/StockNewsServiceTest.java
+--- mychat-back/invest/src/test/java/com/khj/playground/invest/service/StockNewsServiceTest.java	1970-01-01 09:00:00.000000000 +0900
++++ mychat-back/invest/src/test/java/com/khj/playground/invest/service/StockNewsServiceTest.java	2026-11-18 00:12:06.955388346 +0900
+@@ -0,0 +1,39 @@
++package com.khj.playground.invest.service;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++import static org.junit.jupiter.api.Assertions.assertNull;
++import static org.junit.jupiter.api.Assertions.assertTrue;
++
++import org.junit.jupiter.api.Test;
++
++class StockNewsServiceTest {
++
++  @Test
++  void summaryDropsHtmlTagsAndCollapsesSpaces() {
++    assertEquals(
++      "Apple rises on guidance",
++      StockNewsService.cleanSummary("<p>Apple  rises</p>\n<b>on</b> guidance")
++    );
++  }
++
++  @Test
++  void summaryIsNullWhenBlank() {
++    assertNull(StockNewsService.cleanSummary(null));
++    assertNull(StockNewsService.cleanSummary("<br/> "));
++  }
++
++  @Test
++  void longSummaryIsTruncated() {
++    String result = StockNewsService.cleanSummary("a".repeat(500));
++    assertTrue(result.length() <= 301);
++    assertTrue(result.endsWith("…"));
++  }
++
++  @Test
++  void onlyHttpLinksAreAllowed() {
++    assertEquals("https://example.com/a", StockNewsService.safeUrl("https://example.com/a"));
++    assertEquals("http://example.com/a", StockNewsService.safeUrl(" http://example.com/a "));
++    assertNull(StockNewsService.safeUrl("javascript:alert(1)"));
++    assertNull(StockNewsService.safeUrl(null));
++  }
++}

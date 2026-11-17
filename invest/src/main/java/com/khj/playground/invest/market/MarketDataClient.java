@@ -48,6 +48,15 @@ public interface MarketDataClient {
     return List.of();
   }
 
+  /**
+   * 종목 뉴스(최신순). 지원하지 않는 제공자는 빈 목록이다.
+   *
+   * @throws MarketDataException 제공자 오류, 호출 한도 초과 등
+   */
+  default List<NewsItem> fetchNews(String symbol, int limit) {
+    return List.of();
+  }
+
   /** 미국 거래소 종목만 돌려준다. 실패하면 빈 목록 대신 예외를 던진다. */
   List<SymbolInfo> search(String query);
 

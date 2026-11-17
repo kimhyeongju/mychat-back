@@ -51,3 +51,23 @@ watchlist-full:
 participant-not-found:
   code: '4013'
   message: 'This user has not joined the mock investment.'
+
+news-unavailable:
+  code: '4014'
+  message: 'Could not load the news. Please try again later.'
+
+post-not-found:
+  code: '4015'
+  message: 'This post does not exist.'
+
+comment-not-found:
+  code: '4016'
+  message: 'This comment does not exist.'
+
+post-forbidden:
+  code: '4017'
+  message: 'You can only edit or delete your own posts and comments.'
+
+discussion-rate-limited:
+  code: '4018'
+  message: 'You are posting too fast. Please try again shortly.'

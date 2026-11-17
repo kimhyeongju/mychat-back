@@ -6,3 +6,11 @@ invest-dto:
   quantity:
     min: 'The quantity must be at least {value}.'
     max: 'You can order up to {value} shares at a time.'
+  post:
+    content:
+      not-blank: 'Please enter some content.'
+      size: 'Posts can be up to {max} characters.'
+  comment:
+    content:
+      not-blank: 'Please enter a comment.'
+      size: 'Comments can be up to {max} characters.'

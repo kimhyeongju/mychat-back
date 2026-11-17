@@ -51,3 +51,23 @@ watchlist-full:
 participant-not-found:
   code: '4013'
   message: '모의투자에 참여하지 않은 사용자입니다.'
+
+news-unavailable:
+  code: '4014'
+  message: '뉴스를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'
+
+post-not-found:
+  code: '4015'
+  message: '존재하지 않는 글입니다.'
+
+comment-not-found:
+  code: '4016'
+  message: '존재하지 않는 댓글입니다.'
+
+post-forbidden:
+  code: '4017'
+  message: '본인이 작성한 글·댓글만 수정하거나 삭제할 수 있습니다.'
+
+discussion-rate-limited:
+  code: '4018'
+  message: '너무 빠르게 작성하고 있습니다. 잠시 후 다시 시도해주세요.'

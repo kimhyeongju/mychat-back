@@ -397,6 +397,66 @@ public class AlpacaMarketDataClient implements MarketDataClient {
     return new AssetIndex(List.copyOf(assets), Map.copyOf(bySymbol), Instant.now());
   }
 
+  // ---------- 뉴스 ----------
+
+  /**
+   * Benzinga 뉴스(Alpaca News API). 본문(content)은 받지 않고 제목·요약·링크만 쓴다.
+   * 응답 구조: { "news": [ { id, headline, summary, source, url, created_at, ... } ] }
+   */
+  @Override
+  public List<NewsItem> fetchNews(String symbol, int limit) {
+    Map<String, Object> body = call(() ->
+      dataClient
+        .get()
+        .uri(uri ->
+          uri
+            .path("/v1beta1/news")
+            .queryParam("symbols", symbol)
+            .queryParam("limit", limit)
+            .queryParam("sort", "desc")
+            .queryParam("include_content", false)
+            .build()
+        )
+        .retrieve()
+        .body(new ParameterizedTypeReference<Map<String, Object>>() {})
+    );
+    if (body == null) return List.of();
+    return parseNews(body);
+  }
+
+  static List<NewsItem> parseNews(Map<String, Object> body) {
+    List<NewsItem> result = new ArrayList<>();
+    if (!(body.get("news") instanceof List<?> articles)) return result;
+    for (Object article : articles) {
+      if (!(article instanceof Map<?, ?> m)) continue;
+      Object id = m.get("id");
+      String headline = str(m.get("headline"));
+      if (!(id instanceof Number n) || headline == null) continue;
+      Instant createdAt = null;
+      try {
+        String created = str(m.get("created_at"));
+        if (created != null) createdAt = Instant.parse(created);
+      } catch (RuntimeException e) {
+        // 시각을 읽지 못해도 기사는 보여준다.
+      }
+      result.add(
+        new NewsItem(
+          n.longValue(),
+          headline,
+          str(m.get("summary")),
+          str(m.get("source")),
+          str(m.get("url")),
+          createdAt
+        )
+      );
+    }
+    return result;
+  }
+
+  private static String str(Object value) {
+    return value instanceof String s && !s.isBlank() ? s : null;
+  }
+
   private <T> T call(java.util.function.Supplier<T> request) {
     try {
       return request.get();

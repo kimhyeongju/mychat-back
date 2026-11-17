@@ -17,7 +17,12 @@ public enum InvestErrorCode implements ErrorCode {
   INSUFFICIENT_CASH("insufficient-cash", HttpStatus.BAD_REQUEST),
   INSUFFICIENT_HOLDINGS("insufficient-holdings", HttpStatus.BAD_REQUEST),
   WATCHLIST_FULL("watchlist-full", HttpStatus.BAD_REQUEST),
-  PARTICIPANT_NOT_FOUND("participant-not-found", HttpStatus.NOT_FOUND);
+  PARTICIPANT_NOT_FOUND("participant-not-found", HttpStatus.NOT_FOUND),
+  NEWS_UNAVAILABLE("news-unavailable", HttpStatus.SERVICE_UNAVAILABLE),
+  POST_NOT_FOUND("post-not-found", HttpStatus.NOT_FOUND),
+  COMMENT_NOT_FOUND("comment-not-found", HttpStatus.NOT_FOUND),
+  POST_FORBIDDEN("post-forbidden", HttpStatus.FORBIDDEN),
+  DISCUSSION_RATE_LIMITED("discussion-rate-limited", HttpStatus.TOO_MANY_REQUESTS);
 
   private final String key;
   private final HttpStatus status;

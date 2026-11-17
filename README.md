@@ -275,6 +275,24 @@ Alpaca 무료 시세의 특징은 다음과 같습니다.
 - `GET /api/invest/watchlist`, `PUT|DELETE /api/invest/watchlist/{symbol}`(로그인 필요, 추가·삭제는 여러 번 호출해도 결과가 같음).
 - 관심 종목은 보유 종목과 함께 `HeldSymbolRefresher`가 주기적으로 갱신해서 목록의 시세가 오래되지 않습니다.
 
+### 종목 뉴스와 토론
+
+- **뉴스**: Alpaca News API(Benzinga)에서 종목별 최신 15건의 제목·요약·원문 링크만 가져옵니다(본문은 받지 않음). 같은 종목은 `invest.news.cache-seconds`(기본 300초) 동안 캐시하고, 제공자가 실패하면 오래된 캐시를 대신 돌려줍니다. 캐시도 없으면 4014 오류입니다. `fake` 제공자는 뉴스를 주지 않습니다. 공시(SEC filings)는 Alpaca 가 제공하지 않아 아직 없습니다.
+- **토론**: 글(최대 1000자)·댓글(최대 500자)·좋아요. 조회는 누구나, 쓰기는 로그인한 사용자만 합니다. 글 수정은 작성자만, 삭제는 작성자나 운영자가 합니다. 도배 방지로 사용자당 1분에 글 3개, 댓글 10개까지입니다(Redis 카운터).
+- 좋아요/댓글 수는 `invest_stock_posts` 에 들고 있지만 변경할 때마다 실제 행 수로 다시 계산해 맞춥니다. 탈퇴하면 그 회원의 글·댓글·좋아요를 모두 지웁니다(글에 달린 다른 사람의 댓글도 함께 사라짐).
+
+| 메서드 | 경로                           | 인증 | 설명                         |
+| ------ | ------------------------------ | ---- | ---------------------------- |
+| GET    | `/symbols/{symbol}/news`       | —    | 종목 뉴스                    |
+| GET    | `/symbols/{symbol}/posts`      | —    | 토론 글 `?sort=latest\|popular&page=&size=` (로그인 시 liked/mine 포함) |
+| POST   | `/symbols/{symbol}/posts`      | 필요 | 글쓰기 `{content}`           |
+| PATCH  | `/posts/{id}`                  | 필요 | 글 수정 (작성자)             |
+| DELETE | `/posts/{id}`                  | 필요 | 글 삭제 (작성자·운영자)      |
+| PUT·DELETE | `/posts/{id}/like`         | 필요 | 좋아요 / 취소 (멱등)         |
+| GET    | `/posts/{id}/comments`         | —    | 댓글 목록                    |
+| POST   | `/posts/{id}/comments`         | 필요 | 댓글쓰기 `{content}`         |
+| DELETE | `/comments/{id}`               | 필요 | 댓글 삭제 (작성자·운영자)    |
+
 ### 거래 규칙
 
 - 시장가 매수·매도만 있으며 24시간 가능합니다. 장 마감 중에는 마지막 체결가로 체결됩니다.
