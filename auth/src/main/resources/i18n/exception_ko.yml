@@ -78,3 +78,7 @@ admin-cannot-delete:
 phone-generation-failed:
   code: '1020'
   message: '임시 전화번호를 만들지 못했습니다. 다시 시도해주세요.'
+
+username-format-invalid:
+  code: '1021'
+  message: '아이디는 영문/숫자/언더스코어 7~16자여야 합니다.'

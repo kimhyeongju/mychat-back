@@ -78,3 +78,7 @@ admin-cannot-delete:
 phone-generation-failed:
   code: '1020'
   message: 'Could not generate a temporary phone number. Please try again.'
+
+username-format-invalid:
+  code: '1021'
+  message: 'The username must be 7 to 16 characters of letters, digits or underscores.'

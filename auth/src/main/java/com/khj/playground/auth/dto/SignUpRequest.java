@@ -7,9 +7,13 @@ import jakarta.validation.constraints.Size;
 
 public record SignUpRequest(
   @NotBlank(message = "{user-dto.username.not-blank}")
-  @Size(min = 4, max = 20, message = "{user-dto.username.size}")
+  @Size(
+    min = UsernamePolicy.MIN,
+    max = UsernamePolicy.MAX,
+    message = "{user-dto.username.size}"
+  )
   @Pattern(
-    regexp = "^[a-zA-Z0-9_]+$",
+    regexp = UsernamePolicy.REGEX,
     message = "{user-dto.username.pattern}"
   )
   String username,

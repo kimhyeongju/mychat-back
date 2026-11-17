@@ -10,6 +10,7 @@ import com.khj.playground.auth.dto.ResetPasswordRequest;
 import com.khj.playground.auth.dto.SignUpRequest;
 import com.khj.playground.auth.dto.SignUpResponse;
 import com.khj.playground.auth.dto.TokenResponse;
+import com.khj.playground.auth.dto.UsernamePolicy;
 import com.khj.playground.auth.entity.User;
 import com.khj.playground.auth.jwt.JwtTokenProvider;
 import com.khj.playground.auth.repository.UserRepository;
@@ -102,6 +103,9 @@ public class AuthService {
   }
 
   public AvailabilityResponse checkUsernameAvailable(String username) {
+    if (!UsernamePolicy.isValid(username)) {
+      throw new ApiException(AuthErrorCode.USERNAME_FORMAT_INVALID);
+    }
     return new AvailabilityResponse(!userRepository.existsByUsername(username));
   }
 
@@ -170,14 +174,11 @@ public class AuthService {
     refreshTokenService.delete(username);
   }
 
+  /** 뒤 3자리만 마스킹한다. 3자 이하라면 첫 글자는 남긴다. */
   private String maskUsername(String username) {
-    if (username.length() <= 2) {
-      return username.charAt(0) + "*".repeat(username.length() - 1);
-    }
-    int visibleLength = Math.min(2, username.length() - 2);
+    int masked = Math.min(3, username.length() - 1);
     return (
-      username.substring(0, visibleLength) +
-      "*".repeat(username.length() - visibleLength)
+      username.substring(0, username.length() - masked) + "*".repeat(masked)
     );
   }
 

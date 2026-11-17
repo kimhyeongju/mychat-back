@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 /** 인증/회원 오류. 코드 대역 1xxx. 문구는 auth 모듈의 i18n/exception_*.yml. */
 public enum AuthErrorCode implements ErrorCode {
   PHONE_VERIFICATION_REQUIRED("phone-verification-required", HttpStatus.BAD_REQUEST),
+  USERNAME_FORMAT_INVALID("username-format-invalid", HttpStatus.BAD_REQUEST),
   USERNAME_DUPLICATED("username-duplicated", HttpStatus.CONFLICT),
   NICKNAME_DUPLICATED("nickname-duplicated", HttpStatus.CONFLICT),
   PHONE_DUPLICATED("phone-duplicated", HttpStatus.CONFLICT),
