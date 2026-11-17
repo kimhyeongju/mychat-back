@@ -33,6 +33,7 @@ public class WeeklySettlementScheduler {
   private final RankingService rankingService;
   private final ScoreService scoreService;
   private final WeeklyPeriod weeklyPeriod;
+  private final StockSplitService splitService;
 
   @Value("${invest.weekly.enabled:true}")
   private boolean enabled;
@@ -57,6 +58,7 @@ public class WeeklySettlementScheduler {
     }
     try {
       refreshPrices();
+      applyPendingSplits();
       if (settlementService.settle(due)) {
         rankingService.invalidate();
         scoreService.invalidate();
@@ -77,6 +79,15 @@ public class WeeklySettlementScheduler {
       ? bootWeekEnd
       : LocalDate.parse(firstWeekEnd.trim());
     return !due.isBefore(first);
+  }
+
+  /** 마감 직전에 아직 반영 안 된 분할/병합이 있으면 먼저 반영한다. 실패해도 정산은 진행한다. */
+  private void applyPendingSplits() {
+    try {
+      splitService.applyDue();
+    } catch (Exception e) {
+      log.warn("정산 직전 분할/병합 반영 실패: {}", e.getMessage());
+    }
   }
 
   /** 마감 시점 가격이 최신이 되도록 보유 종목을 한 번 갱신한다. 실패해도 정산은 진행한다. */

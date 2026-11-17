@@ -10,6 +10,7 @@ import com.khj.playground.invest.dto.ProfileResponse;
 import com.khj.playground.invest.dto.PublicPortfolioResponse;
 import com.khj.playground.invest.dto.QuoteResponse;
 import com.khj.playground.invest.dto.RankingResponse;
+import com.khj.playground.invest.dto.SplitAdjustmentResponse;
 import com.khj.playground.invest.dto.SymbolSearchResponse;
 import com.khj.playground.invest.dto.TradeRequest;
 import com.khj.playground.invest.dto.TradeResponse;
@@ -22,6 +23,7 @@ import com.khj.playground.invest.service.PriceService;
 import com.khj.playground.invest.service.RankingService;
 import com.khj.playground.invest.service.SymbolService;
 import com.khj.playground.invest.service.ScoreService;
+import com.khj.playground.invest.service.StockSplitService;
 import com.khj.playground.invest.service.TradeService;
 import com.khj.playground.invest.service.WatchlistService;
 import com.khj.playground.invest.service.WeekInfoService;
@@ -59,6 +61,7 @@ public class InvestController {
   private final ScoreService scoreService;
   private final WatchlistService watchlistService;
   private final WeekInfoService weekInfoService;
+  private final StockSplitService splitService;
   private final CurrentUserProvider currentUserProvider;
 
   // ----- 공개 -----
@@ -133,6 +136,12 @@ public class InvestController {
   ) {
     userId(authentication); // 인증 확인
     return portfolioService.getPublicPortfolio(targetUserId);
+  }
+
+  /** 이번 주에 내 보유 종목에 적용된 분할/병합 조정 내역. */
+  @GetMapping("/split-adjustments")
+  public List<SplitAdjustmentResponse> splitAdjustments(Authentication authentication) {
+    return splitService.thisWeek(userId(authentication));
   }
 
   // ----- 관심 종목 -----

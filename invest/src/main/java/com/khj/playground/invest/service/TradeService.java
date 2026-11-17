@@ -35,6 +35,7 @@ public class TradeService {
   private final PriceService priceService;
   private final SymbolService symbolService;
   private final WeeklyPeriod weeklyPeriod;
+  private final StockSplitService splitService;
 
   @Transactional
   public TradeResultResponse execute(UUID userId, TradeRequest request) {
@@ -48,6 +49,8 @@ public class TradeService {
 
     // 시세는 잠금 전에 받는다. 외부 호출 중에 행 잠금을 들고 있지 않기 위해서다.
     Quote quote = priceService.getQuoteForTrade(symbol);
+    // 시세는 분할 후인데 보유 수량이 아직 조정되기 전이면 체결하지 않는다.
+    splitService.assertTradable(symbol, quote);
     BigDecimal price = quote.price();
     BigDecimal amount = price
       .multiply(BigDecimal.valueOf(request.quantity()))

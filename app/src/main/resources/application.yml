@@ -39,6 +39,10 @@ invest:
     first-week-end: ${INVEST_WEEKLY_FIRST_WEEK_END:}
     # 1위, 2위, 3위 포인트
     points: 3,2,1
+  # 주식 분할/병합 반영. 일정은 시세 제공자(Alpaca)의 기업 이벤트에서 가져온다.
+  splits:
+    enabled: ${INVEST_SPLITS_ENABLED:true}
+    sync-interval-ms: 3600000
   market-data:
     # alpaca | finnhub | fake. 키가 없는 환경에서는 fake 로 두면 서버가 가상 시세를 만든다.
     provider: ${INVEST_MARKET_DATA_PROVIDER:fake}

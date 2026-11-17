@@ -260,6 +260,15 @@ Alpaca 무료 시세의 특징은 다음과 같습니다.
 - 누적 포인트 순위는 `GET /api/invest/leaderboard`, 사용자별 1·2·3위 횟수와 총 포인트는 `GET /api/invest/users/{userId}/profile`, 이번 주 마감 시각과 지난주 결과는 `GET /api/invest/week`입니다.
 - 정산은 폐장 2분 뒤의 시세를 쓰므로, 시간외 거래가 활발한 종목은 공식 종가와 약간 다를 수 있습니다.
 
+### 주식 분할/병합
+- 일정은 Alpaca 기업 이벤트(`/v1/corporate-actions`, forward_split·reverse_split)에서 1시간마다 받아 `invest_stock_splits` 에 저장한다. 대상은 보유·관심·최근 7일 거래 종목이고, 3일 전부터 30일 뒤까지 본다.
+- 적용 시점은 ex-date 가 지난 뒤 **시세의 마지막 체결이 ex-date 04:00 ET 이후(= 분할 후 가격)로 확인된 순간**이다. 시세가 분할 전인 동안은 수량도 그대로 둬서 평가액이 항상 일관된다. 30초마다 확인한다.
+- 조정: 수량 = 수량 × new/old (소수는 버림), 평균 단가 = 단가 × old/new. 병합으로 생긴 소수 주는 분할 후 시세로 현금 정산한다. 계좌 전체 자산과 수익률은 변하지 않는다.
+- 분할 후 시세가 보이는데 아직 조정 전인 짧은 구간에는 그 종목 주문을 막는다(503).
+- 거래 내역은 수정하지 않고 `invest_split_adjustments` 에 조정 기록을 남긴다. 화면은 `GET /api/invest/split-adjustments`(이번 주 내역).
+- 분할을 ex-date 이후에야 알게 된 경우(`late_discovery`), 그 사이 해당 종목을 거래한 계좌는 자동 조정하지 않고 기록만 남긴다.
+- 주간 정산 직전에도 미반영 분할을 먼저 반영한다. `INVEST_SPLITS_ENABLED=false` 로 끌 수 있다. Alpaca 가 아닌 제공자(fake, finnhub)는 일정을 주지 않으므로 아무 일도 하지 않는다.
+
 ### 관심 종목
 
 - 사용자별로 최대 50개를 담을 수 있고(`invest_watchlist`), 본인만 볼 수 있으며 주간 정산에도 지워지지 않습니다.

@@ -22,6 +22,11 @@ public interface InvestAccountRepository
   @Query("SELECT a FROM InvestAccount a WHERE a.userId = :userId")
   Optional<InvestAccount> findByUserIdForUpdate(@Param("userId") UUID userId);
 
+  /** 분할 적용용. 주문과 같은 행 잠금을 건다. */
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("SELECT a FROM InvestAccount a WHERE a.id = :id")
+  Optional<InvestAccount> lockById(@Param("id") UUID id);
+
   /** 주간 초기화. 모든 계좌의 현금을 시작 자금으로 되돌린다. */
   @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("UPDATE InvestAccount a SET a.cash = a.seedMoney")

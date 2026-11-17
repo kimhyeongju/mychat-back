@@ -80,6 +80,12 @@ public class Holding extends BaseTimeEntity {
     this.quantity -= qty;
   }
 
+  /** 분할/병합 조정. 수량과 평균 단가를 함께 바꿔 매수 원가를 유지한다. */
+  public void applySplit(long newQuantity, BigDecimal newAvgCost) {
+    this.quantity = newQuantity;
+    this.avgCost = newAvgCost;
+  }
+
   public boolean isEmpty() {
     return quantity == 0;
   }

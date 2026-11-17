@@ -35,6 +35,19 @@ public interface MarketDataClient {
     return false;
   }
 
+  /**
+   * 분할/병합 일정. ex-date 가 [from, to] 인 것만 준다. 지원하지 않는 제공자는 빈 목록이다.
+   *
+   * @throws MarketDataException 제공자 오류
+   */
+  default List<StockSplitInfo> fetchSplits(
+    Collection<String> symbols,
+    java.time.LocalDate from,
+    java.time.LocalDate to
+  ) {
+    return List.of();
+  }
+
   /** 미국 거래소 종목만 돌려준다. 실패하면 빈 목록 대신 예외를 던진다. */
   List<SymbolInfo> search(String query);
 

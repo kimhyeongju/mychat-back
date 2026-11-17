@@ -203,6 +203,105 @@ public class AlpacaMarketDataClient implements MarketDataClient {
     return instant == null ? null : instant.atZone(NEW_YORK).toLocalDate();
   }
 
+  // ---------- 분할/병합 ----------
+
+  private static final int MAX_SPLIT_PAGES = 20;
+
+  /**
+   * 기업 이벤트 중 분할(forward_split)과 병합(reverse_split)만 가져온다.
+   * 응답은 필요한 값만 직접 꺼낸다. 필드가 늘어나도 영향을 받지 않게 하기 위해서다.
+   * Alpaca 는 기업 이벤트가 등록되는 시점을 보장하지 않으므로 일정은 며칠 전에 미리 받아 두는 것이 안전하다.
+   */
+  @Override
+  public List<StockSplitInfo> fetchSplits(
+    Collection<String> symbols,
+    LocalDate from,
+    LocalDate to
+  ) {
+    List<StockSplitInfo> result = new ArrayList<>();
+    List<String> all = new ArrayList<>(symbols);
+    for (int i = 0; i < all.size(); i += BATCH_SIZE) {
+      String joined = String.join(
+        ",",
+        all.subList(i, Math.min(i + BATCH_SIZE, all.size()))
+      );
+      String pageToken = null;
+      for (int page = 0; page < MAX_SPLIT_PAGES; page++) {
+        final String token = pageToken;
+        Map<String, Object> body = call(() ->
+          dataClient
+            .get()
+            .uri(uri -> {
+              var b = uri
+                .path("/v1/corporate-actions")
+                .queryParam("symbols", joined)
+                .queryParam("types", "forward_split,reverse_split")
+                .queryParam("start", from.toString())
+                .queryParam("end", to.toString())
+                .queryParam("limit", 1000);
+              if (token != null) b = b.queryParam("page_token", token);
+              return b.build();
+            })
+            .retrieve()
+            .body(new ParameterizedTypeReference<Map<String, Object>>() {})
+        );
+        if (body == null) break;
+        collectSplits(body, result);
+        Object next = body.get("next_page_token");
+        pageToken = next instanceof String t && !t.isBlank() ? t : null;
+        if (pageToken == null) break;
+      }
+    }
+    return result;
+  }
+
+  static void collectSplits(Map<String, Object> body, List<StockSplitInfo> out) {
+    if (!(body.get("corporate_actions") instanceof Map<?, ?> actions)) return;
+    addSplits(actions.get("forward_splits"), true, out);
+    addSplits(actions.get("reverse_splits"), false, out);
+  }
+
+  private static void addSplits(Object list, boolean forward, List<StockSplitInfo> out) {
+    if (!(list instanceof List<?> items)) return;
+    for (Object item : items) {
+      if (!(item instanceof Map<?, ?> m)) continue;
+      String symbol = m.get("symbol") instanceof String s ? s.toUpperCase(Locale.ROOT) : null;
+      LocalDate exDate = date(m.get("ex_date"));
+      if (exDate == null) exDate = date(m.get("process_date"));
+      BigDecimal newRate = decimal(m.get("new_rate"));
+      BigDecimal oldRate = decimal(m.get("old_rate"));
+      if (symbol == null || exDate == null || newRate == null || oldRate == null) continue;
+      if (newRate.signum() <= 0 || oldRate.signum() <= 0) continue;
+      int cmp = newRate.compareTo(oldRate);
+      if (cmp == 0) continue;
+      // 분할은 주식 수가 늘고, 병합은 줄어든다. 데이터의 방향이 뒤집혀 있어도 바로잡는다.
+      if ((forward && cmp < 0) || (!forward && cmp > 0)) {
+        BigDecimal tmp = newRate;
+        newRate = oldRate;
+        oldRate = tmp;
+      }
+      out.add(new StockSplitInfo(symbol, exDate, newRate, oldRate));
+    }
+  }
+
+  private static LocalDate date(Object value) {
+    try {
+      return value instanceof String s && !s.isBlank() ? LocalDate.parse(s) : null;
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  private static BigDecimal decimal(Object value) {
+    try {
+      return value instanceof Number || value instanceof String
+        ? new BigDecimal(String.valueOf(value))
+        : null;
+    } catch (NumberFormatException e) {
+      return null;
+    }
+  }
+
   // ---------- 종목 검색 ----------
 
   @Override
